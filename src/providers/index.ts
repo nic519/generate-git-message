@@ -25,7 +25,7 @@ export async function generateMessage(
         {
           emptyMessage: "Claude returned an empty commit message.",
           missingCli: "Could not find the Claude CLI. Check generateGitMessage.claudePath.",
-          templateError: "Claude command did not produce an executable.",
+          invalidCommand: "Claude command did not produce an executable.",
           timeout: "Claude CLI timed out before returning a commit message.",
           unexpected: "Claude CLI failed unexpectedly."
         },
@@ -41,7 +41,7 @@ export async function generateMessage(
         {
           emptyMessage: "Codex returned an empty commit message.",
           missingCli: "Could not find the Codex CLI. Check generateGitMessage.codexPath.",
-          templateError: "Codex command did not produce an executable.",
+          invalidCommand: "Codex command did not produce an executable.",
           timeout: "Codex CLI timed out before returning a commit message.",
           unexpected: "Codex CLI failed unexpectedly."
         },

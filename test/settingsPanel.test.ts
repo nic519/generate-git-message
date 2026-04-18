@@ -300,6 +300,7 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.doesNotMatch(html, /Timeout Window/);
   assert.doesNotMatch(html, /Prompt Mode/);
   assert.doesNotMatch(html, /hero-stat/);
+  assert.doesNotMatch(html, /[\u4e00-\u9fff]/);
 });
 
 test("getSettingsPanelSaveTarget falls back to global when inspect reports no workspace value", () => {

@@ -338,7 +338,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     <section class="hero">
       <p class="eyebrow">Settings</p>
       <h1>Generate Git Message</h1>
-      <p>配置本地 provider、prompt 和运行参数。字段值直接显示在对应设置项里，保存时会保留原有作用域。</p>
+      <p>Configure the local provider, prompt, and runtime options. Values are shown directly in each field, and saved settings keep their existing scope.</p>
     </section>
 
     <form id="settings-form">
@@ -346,7 +346,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <div class="section">
           <div class="section-header">
             <h2>Provider Runtime</h2>
-            <p>定义当前工作区使用哪个本地 CLI，以及这次请求的运行窗口。</p>
+            <p>Select the local CLI provider and the request timeout for this workspace.</p>
           </div>
           <div class="field-grid">
             <label>
@@ -370,14 +370,14 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <div class="section">
           <div class="section-header">
             <h2>Prompt System</h2>
-            <p>共享 prompt 会同时服务于 Codex 与 Claude，适合统一提交语气与输出约束。</p>
+            <p>The shared prompt is used by both Codex and Claude to keep commit message output consistent.</p>
           </div>
           <div class="field-grid">
             <label>
               <span>Shared prompt template</span>
               <textarea name="sharedPromptTemplate">${escapeHtml(state.sharedPromptTemplate)}</textarea>
             </label>
-            <p class="helper">使用 <code>{{diff}}</code> 作为 Git diff 占位符。这里建议只保留会影响提交质量的硬约束。</p>
+            <p class="helper">Use <code>{{diff}}</code> as the Git diff placeholder. Keep only the constraints that improve commit message quality.</p>
           </div>
         </div>
       </div>
@@ -386,7 +386,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <div class="section">
           <div class="section-header">
             <h2>Codex Runtime</h2>
-            <p>为 Codex CLI 配置本地执行路径、模型和命令模板。</p>
+            <p>Configure the local Codex executable, model override, and reasoning effort.</p>
           </div>
           <div class="field-grid">
             <label>
@@ -413,7 +413,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <div class="section">
           <div class="section-header">
             <h2>Claude Runtime</h2>
-            <p>如果你切换到 Claude，本区定义 CLI 路径与自定义命令模板。</p>
+            <p>Configure the local Claude executable used when Claude is selected as the provider.</p>
           </div>
           <div class="field-grid">
             <label>
@@ -427,7 +427,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       <div class="footer-bar">
         <div class="footer-copy">
           <h3>Save Workspace Settings</h3>
-          <p>保存时会尽量保留你原有的 workspace / global 作用域，不会强行改写配置位置。</p>
+          <p>Saving preserves existing workspace or global scope where possible instead of forcing settings into one location.</p>
         </div>
         <div class="actions">
           <button class="secondary" type="reset">Reset Form</button>

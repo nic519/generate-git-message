@@ -124,7 +124,7 @@ test("generateMessage rejects with a cancellation error when the token is cancel
     {
       emptyMessage: "empty",
       missingCli: "missing",
-      templateError: "template",
+      invalidCommand: "invalid",
       timeout: "timeout",
       unexpected: "unexpected"
     },

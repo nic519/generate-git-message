@@ -15,7 +15,7 @@ The extension prefers staged changes. If nothing is staged, it falls back to cur
 
 ## Settings
 
-Use the built-in sidebar to choose the active provider and configure the shared prompt, CLI paths, and command templates in one place.
+Use the built-in sidebar to choose the active provider and configure the shared prompt, CLI paths, and runtime settings in one place.
 Open the `Generate Git Message` icon from the VS Code activity bar to access the full interface.
 When you save from the panel, existing workspace-scoped values stay in the workspace; otherwise settings fall back to global.
 
@@ -43,25 +43,9 @@ Reasoning effort passed to Codex. Defaults to `medium`.
 
 When enabled, the extension writes provider diagnostics to the `Generate Git Message` output channel in VS Code.
 
-### `generateGitMessage.commandTemplate`
-
-Optional full command template for advanced setups. The extension writes the rendered prompt into a temporary file and replaces `{{promptFile}}` with that path.
-
-Example:
-
-```text
-/usr/local/bin/codex exec --skip-git-repo-check "$(cat {{promptFile}})"
-```
-
-The selected provider runs either its default CLI command or your custom shell command template, so keep custom templates aligned with how your shell wrapper expects arguments.
-
 ### `generateGitMessage.claudePath`
 
 Path to the local Claude CLI executable. Defaults to `claude`.
-
-### `generateGitMessage.claudeCommandTemplate`
-
-Optional Claude command template. Use `{{promptFile}}` to reference the temporary prompt file.
 
 ### `generateGitMessage.promptTemplate`
 

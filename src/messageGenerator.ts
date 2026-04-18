@@ -8,7 +8,7 @@ import { type BuiltCommand, type CancellationToken, type ExecutionContext, type 
 export interface ExecutionErrorMessages {
   emptyMessage: string;
   missingCli: string;
-  templateError: string;
+  invalidCommand: string;
   timeout: string;
   unexpected: string;
 }
@@ -43,7 +43,7 @@ export async function generateMessage(
 
     const { command, args, stdin } = buildCommand({ prompt, promptFile, outputFile });
     if (!command) {
-      throw new MessageGenerationError(errorMessages.templateError);
+      throw new MessageGenerationError(errorMessages.invalidCommand);
     }
 
     const startedAt = Date.now();
