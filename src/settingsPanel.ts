@@ -1,8 +1,10 @@
 import {
+  OUTPUT_LANGUAGES,
   PROVIDERS,
   REASONING_EFFORTS,
   resolveExtensionOptions,
   type ConfigurationLike,
+  type OutputLanguage,
   type ReasoningEffort
 } from "./config";
 
@@ -12,6 +14,7 @@ export interface SettingsPanelState {
   common: {
     timeoutMs: number;
     debugLogging: boolean;
+    outputLanguage: OutputLanguage;
   };
   codex: {
     codexPath: string;
@@ -45,7 +48,8 @@ export function getSettingsPanelState(configuration: ConfigurationLike): Setting
     sharedPromptTemplate: options.common.promptTemplate,
     common: {
       timeoutMs: options.common.timeoutMs,
-      debugLogging: options.common.debugLogging
+      debugLogging: options.common.debugLogging,
+      outputLanguage: options.common.outputLanguage
     },
     codex: {
       codexPath: options.codex.codexPath,
@@ -71,6 +75,7 @@ export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveM
   return [
     { key: "provider", value: message.provider },
     { key: "promptTemplate", value: message.sharedPromptTemplate },
+    { key: "outputLanguage", value: message.common.outputLanguage },
     { key: "timeoutMs", value: message.common.timeoutMs },
     { key: "debugLogging", value: message.common.debugLogging },
     { key: "codexPath", value: message.codex.codexPath },
@@ -359,6 +364,14 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
               </select>
             </label>
             <label>
+              <span>Output language</span>
+              <select name="outputLanguage">
+                ${renderOutputLanguageOption("en", state.common.outputLanguage)}
+                ${renderOutputLanguageOption("zh", state.common.outputLanguage)}
+                ${renderOutputLanguageOption("ja", state.common.outputLanguage)}
+              </select>
+            </label>
+            <label>
               <span>Timeout (ms)</span>
               <input name="timeoutMs" type="number" min="1000" step="1000" value="${state.common.timeoutMs}" />
             </label>
@@ -431,10 +444,6 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       </div>
 
       <div class="footer-bar">
-        <div class="footer-copy">
-          <h3>Save Workspace Settings</h3>
-          <p>Saving preserves existing workspace or global scope where possible instead of forcing settings into one location.</p>
-        </div>
         <div class="actions">
           <button class="secondary" type="reset">Reset Form</button>
           <button class="secondary" id="generate-message-button" type="button">
@@ -467,7 +476,8 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         sharedPromptTemplate: String(values.get('sharedPromptTemplate') || ''),
         common: {
           timeoutMs: Number(values.get('timeoutMs') || state.common.timeoutMs),
-          debugLogging: values.get('debugLogging') === 'on'
+          debugLogging: values.get('debugLogging') === 'on',
+          outputLanguage: String(values.get('outputLanguage') || 'en')
         },
         codex: {
           codexPath: String(values.get('codexPath') || ''),
@@ -503,6 +513,16 @@ function renderReasoningEffortOption(value: ReasoningEffort, selectedValue: Reas
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${value}</option>`;
 }
 
+function renderOutputLanguageOption(value: OutputLanguage, selectedValue: OutputLanguage): string {
+  const labels: Record<OutputLanguage, string> = {
+    en: "English",
+    zh: "Chinese",
+    ja: "Japanese"
+  };
+
+  return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${labels[value]}</option>`;
+}
+
 function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage {
   if (!isRecord(value)) {
     return false;
@@ -514,6 +534,7 @@ function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage
     isRecord(value.common) &&
     isFiniteNumberAtLeast(value.common.timeoutMs, 1000) &&
     isBoolean(value.common.debugLogging) &&
+    isOutputLanguage(value.common.outputLanguage) &&
     isRecord(value.codex) &&
     isString(value.codex.codexPath) &&
     isString(value.codex.model) &&
@@ -530,6 +551,10 @@ function isProvider(value: unknown): value is SettingsPanelState["provider"] {
 
 function isReasoningEffort(value: unknown): value is ReasoningEffort {
   return typeof value === "string" && REASONING_EFFORTS.includes(value as ReasoningEffort);
+}
+
+function isOutputLanguage(value: unknown): value is OutputLanguage {
+  return typeof value === "string" && OUTPUT_LANGUAGES.includes(value as OutputLanguage);
 }
 
 function isFiniteNumberAtLeast(value: unknown, minimum: number): value is number {

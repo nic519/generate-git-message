@@ -26,7 +26,8 @@ test("resolveCommonOptions uses common defaults", () => {
   const options = resolveCommonOptions(makeConfiguration({}));
 
   assert.equal(options.debugLogging, false);
-  assert.equal(options.promptTemplate, "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\n- 直接只输出最终 commit message\n- 不要解释\n- 默认使用 Conventional Commits 风格，但描述使用中文\n- 尽量准确概括本次变更\n- 如果无法判断，给出最稳妥的一行提交信息\n\n{{diff}}");
+  assert.match(options.promptTemplate, /Generate a concise git commit message/);
+  assert.equal(options.outputLanguage, "en");
   assert.equal(options.timeoutMs, 20000);
 });
 
@@ -45,6 +46,7 @@ test("resolveCodexOptions respects workspace overrides", () => {
       "generateGitMessage.model": "gpt-5.4-mini",
       "generateGitMessage.reasoningEffort": "low",
       "generateGitMessage.debugLogging": true,
+      "generateGitMessage.outputLanguage": "ja",
       "generateGitMessage.promptTemplate": "Commit:\n{{diff}}",
       "generateGitMessage.timeoutMs": 15000
     })
@@ -100,6 +102,7 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
       "generateGitMessage.model": "gpt-5.4-mini",
       "generateGitMessage.reasoningEffort": "high",
       "generateGitMessage.debugLogging": true,
+      "generateGitMessage.outputLanguage": "zh",
       "generateGitMessage.promptTemplate": "Commit:\n{{diff}}",
       "generateGitMessage.timeoutMs": 15000,
       "generateGitMessage.claudePath": "/usr/local/bin/claude",
@@ -109,6 +112,7 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
 
   assert.equal(options.provider, "claude");
   assert.equal(options.common.debugLogging, true);
+  assert.equal(options.common.outputLanguage, "zh");
   assert.equal(options.common.promptTemplate, "Commit:\n{{diff}}");
   assert.equal(options.common.timeoutMs, 15000);
   assert.equal(options.codex.codexPath, "/usr/local/bin/codex");
@@ -124,7 +128,7 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
     contributes: {
       commands?: Array<{ command: string; title: string; category?: string }>;
       configuration: {
-        properties: Record<string, { default: unknown }>;
+        properties: Record<string, { default: unknown; enum?: string[] }>;
       };
       viewsContainers?: {
         activitybar?: Array<{ id: string; title: string; icon: string }>;
@@ -150,8 +154,9 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.equal(properties["generateGitMessage.claudePath"].default, "claude");
   assert.equal(properties["generateGitMessage.claudeModel"].default, "claude-haiku-4-5-20251001");
   assert.equal(properties["generateGitMessage.reasoningEffort"].default, "medium");
+  assert.equal(properties["generateGitMessage.outputLanguage"].default, "en");
+  assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "ja"]);
   assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
-  assert.match(String(properties["generateGitMessage.promptTemplate"].default), /\n- 直接只输出最终 commit message/);
   assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 20000);
 

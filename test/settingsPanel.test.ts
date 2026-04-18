@@ -28,6 +28,7 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
     makeConfiguration({
       "generateGitMessage.provider": "claude",
       "generateGitMessage.promptTemplate": "Shared prompt:\n{{diff}}",
+      "generateGitMessage.outputLanguage": "ja",
       "generateGitMessage.timeoutMs": 15000,
       "generateGitMessage.debugLogging": true,
       "generateGitMessage.codexPath": "/usr/local/bin/codex",
@@ -43,7 +44,8 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
     sharedPromptTemplate: "Shared prompt:\n{{diff}}",
     common: {
       timeoutMs: 15000,
-      debugLogging: true
+      debugLogging: true,
+      outputLanguage: "ja"
     },
     codex: {
       codexPath: "/usr/local/bin/codex",
@@ -63,7 +65,8 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
     sharedPromptTemplate: "Prompt:\n{{diff}}",
     common: {
       timeoutMs: 20000,
-      debugLogging: false
+      debugLogging: false,
+      outputLanguage: "en"
     },
     codex: {
       codexPath: "codex",
@@ -79,6 +82,7 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
   assert.deepEqual(updates, [
     { key: "provider", value: "codex" },
     { key: "promptTemplate", value: "Prompt:\n{{diff}}" },
+    { key: "outputLanguage", value: "en" },
     { key: "timeoutMs", value: 20000 },
     { key: "debugLogging", value: false },
     { key: "codexPath", value: "codex" },
@@ -98,7 +102,8 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         sharedPromptTemplate: "Prompt",
         common: {
           timeoutMs: 20000,
-          debugLogging: true
+          debugLogging: true,
+          outputLanguage: "en"
         },
         codex: {
           codexPath: "codex",
@@ -122,7 +127,8 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         sharedPromptTemplate: "Prompt",
         common: {
           timeoutMs: Number.NaN,
-          debugLogging: true
+          debugLogging: true,
+          outputLanguage: "en"
         },
         codex: {
           codexPath: "codex",
@@ -146,7 +152,8 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         sharedPromptTemplate: "Prompt",
         common: {
           timeoutMs: 20000,
-          debugLogging: true
+          debugLogging: true,
+          outputLanguage: "en"
         },
         codex: {
           codexPath: 123,
@@ -172,7 +179,8 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
       sharedPromptTemplate: "Prompt",
       common: {
         timeoutMs: 22000,
-        debugLogging: false
+        debugLogging: false,
+        outputLanguage: "en"
       },
       codex: {
         codexPath: "/usr/local/bin/codex",
@@ -189,7 +197,7 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
     }
   );
 
-  assert.equal(updates.length, 9);
+  assert.equal(updates.length, 10);
   assert.equal(updates.every((update) => update.target === "global"), true);
 });
 
@@ -202,7 +210,8 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
       sharedPromptTemplate: "Prompt",
       common: {
         timeoutMs: 22000,
-        debugLogging: false
+        debugLogging: false,
+        outputLanguage: "en"
       },
       codex: {
         codexPath: "/usr/local/bin/codex",
@@ -220,7 +229,7 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
     (key) => (key === "timeoutMs" ? "workspace" : "global")
   );
 
-  assert.equal(updates.length, 9);
+  assert.equal(updates.length, 10);
   assert.equal(updates.find((update) => update.key === "timeoutMs")?.target, "workspace");
   assert.equal(updates.filter((update) => update.key !== "timeoutMs").every((update) => update.target === "global"), true);
 });
@@ -256,7 +265,8 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
       sharedPromptTemplate: `Prompt <script>alert("x")</script>`,
       common: {
         timeoutMs: 20000,
-        debugLogging: true
+        debugLogging: true,
+        outputLanguage: "en"
       },
       codex: {
         codexPath: `codex&"<'`,
@@ -286,7 +296,8 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
       sharedPromptTemplate: "Prompt:\n{{diff}}",
       common: {
         timeoutMs: 20000,
-        debugLogging: true
+        debugLogging: true,
+        outputLanguage: "en"
       },
       codex: {
         codexPath: "codex",
@@ -302,11 +313,15 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
 
   assert.match(html, /Settings/);
   assert.match(html, /Provider Runtime/);
+  assert.match(html, /Output language/);
+  assert.match(html, /<option value="en" selected>English<\/option>/);
+  assert.match(html, /<option value="zh">Chinese<\/option>/);
+  assert.match(html, /<option value="ja">Japanese<\/option>/);
   assert.match(html, /Prompt System/);
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Claude model/);
   assert.match(html, /claude-haiku-4-5-20251001/);
-  assert.match(html, /Save Workspace Settings/);
+  assert.match(html, /Save Settings/);
   assert.match(html, /Generate Message/);
   assert.match(html, /M11\.017 2\.814/);
   assert.match(html, /M20 2v4/);

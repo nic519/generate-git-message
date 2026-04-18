@@ -103,6 +103,21 @@
           "default": false,
           "description": "Write provider diagnostics to the 'Generate Git Message' output channel."
         },
+        "generateGitMessage.outputLanguage": {
+          "type": "string",
+          "default": "en",
+          "enum": [
+            "en",
+            "zh",
+            "ja"
+          ],
+          "enumItemLabels": [
+            "English",
+            "Chinese",
+            "Japanese"
+          ],
+          "description": "Language used for the generated commit message."
+        },
         "generateGitMessage.claudePath": {
           "type": "string",
           "default": "claude",
@@ -115,7 +130,7 @@
         },
         "generateGitMessage.promptTemplate": {
           "type": "string",
-          "default": "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\n- 直接只输出最终 commit message\n- 不要解释\n- 默认使用 Conventional Commits 风格，但描述使用中文\n- 尽量准确概括本次变更\n- 如果无法判断，给出最稳妥的一行提交信息\n\n{{diff}}",
+          "default": "Generate a concise git commit message from the following git diff.\nRequirements:\n- Return only the final commit message.\n- Do not explain the result.\n- Prefer Conventional Commits style when it fits the change.\n- Accurately summarize the main intent of the change.\n- If the change is ambiguous, choose the safest concise message.\n\n{{diff}}",
           "description": "Prompt template shared by the selected provider. Use {{diff}} as the Git diff placeholder."
         },
         "generateGitMessage.timeoutMs": {

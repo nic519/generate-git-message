@@ -43,6 +43,14 @@ Reasoning effort passed to Codex. Defaults to `medium`.
 
 When enabled, the extension writes provider diagnostics to the `Generate Git Message` output channel in VS Code.
 
+### `generateGitMessage.outputLanguage`
+
+Language used for the generated commit message. Defaults to `en`.
+
+- `en` generates English commit messages.
+- `zh` generates Chinese commit messages.
+- `ja` generates Japanese commit messages.
+
 ### `generateGitMessage.claudePath`
 
 Path to the local Claude CLI executable. Defaults to `claude`.
@@ -58,12 +66,13 @@ Prompt template shared by both providers. Use `{{diff}}` where the selected Git 
 Default:
 
 ```text
-根据以下 git diff，生成一个简洁明确的 git commit message。要求：
-- 直接只输出最终 commit message
-- 不要解释
-- 默认使用 Conventional Commits 风格，但描述使用中文
-- 尽量准确概括本次变更
-- 如果无法判断，给出最稳妥的一行提交信息
+Generate a concise git commit message from the following git diff.
+Requirements:
+- Return only the final commit message.
+- Do not explain the result.
+- Prefer Conventional Commits style when it fits the change.
+- Accurately summarize the main intent of the change.
+- If the change is ambiguous, choose the safest concise message.
 
 {{diff}}
 ```

@@ -1,17 +1,20 @@
 export const DEFAULT_PROMPT_TEMPLATE =
-  "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\n" +
-  "- 直接只输出最终 commit message\n" +
-  "- 不要解释\n" +
-  "- 默认使用 Conventional Commits 风格，但描述使用中文\n" +
-  "- 尽量准确概括本次变更\n" +
-  "- 如果无法判断，给出最稳妥的一行提交信息\n\n" +
+  "Generate a concise git commit message from the following git diff.\n" +
+  "Requirements:\n" +
+  "- Return only the final commit message.\n" +
+  "- Do not explain the result.\n" +
+  "- Prefer Conventional Commits style when it fits the change.\n" +
+  "- Accurately summarize the main intent of the change.\n" +
+  "- If the change is ambiguous, choose the safest concise message.\n\n" +
   "{{diff}}";
 
 export const REASONING_EFFORTS = ["none", "low", "medium", "high", "xhigh"] as const;
 export const PROVIDERS = ["codex", "claude"] as const;
+export const OUTPUT_LANGUAGES = ["en", "zh", "ja"] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 export type Provider = (typeof PROVIDERS)[number];
+export type OutputLanguage = (typeof OUTPUT_LANGUAGES)[number];
 
 export interface ConfigurationLike {
   get<T>(key: string, defaultValue?: T): T;
@@ -25,6 +28,7 @@ export interface ConfigurationLike {
 
 export interface CommonOptions {
   debugLogging: boolean;
+  outputLanguage: OutputLanguage;
   promptTemplate: string;
   timeoutMs: number;
 }
@@ -54,6 +58,7 @@ export function resolveCodexOptions(configuration: ConfigurationLike): CodexOpti
 export function resolveCommonOptions(configuration: ConfigurationLike): CommonOptions {
   return {
     debugLogging: configuration.get<boolean>("debugLogging", false),
+    outputLanguage: resolveOutputLanguage(configuration.get<string>("outputLanguage", "en")),
     promptTemplate: configuration.get<string>("promptTemplate", DEFAULT_PROMPT_TEMPLATE),
     timeoutMs: configuration.get<number>("timeoutMs", 20_000)
   };
@@ -89,10 +94,18 @@ function resolveProvider(value: string): Provider {
   return isProvider(value) ? value : "codex";
 }
 
+function resolveOutputLanguage(value: string): OutputLanguage {
+  return isOutputLanguage(value) ? value : "en";
+}
+
 function isReasoningEffort(value: string): value is ReasoningEffort {
   return REASONING_EFFORTS.includes(value as ReasoningEffort);
 }
 
 function isProvider(value: string): value is Provider {
   return PROVIDERS.includes(value as Provider);
+}
+
+function isOutputLanguage(value: string): value is OutputLanguage {
+  return OUTPUT_LANGUAGES.includes(value as OutputLanguage);
 }
