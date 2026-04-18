@@ -37,6 +37,7 @@ export interface CodexOptions {
 
 export interface ClaudeOptions {
   claudePath: string;
+  claudeModel: string;
 }
 
 export interface ExtensionOptions {
@@ -63,14 +64,15 @@ export function resolveCodexProviderOptions(configuration: ConfigurationLike): C
 
   return {
     codexPath: configuration.get<string>("codexPath", "codex"),
-    model: configuration.get<string>("model", ""),
+    model: configuration.get<string>("model", "gpt-5.4-mini"),
     reasoningEffort: isReasoningEffort(reasoningEffort) ? reasoningEffort : "medium"
   };
 }
 
 export function resolveClaudeOptions(configuration: ConfigurationLike): ClaudeOptions {
   return {
-    claudePath: configuration.get<string>("claudePath", "claude")
+    claudePath: configuration.get<string>("claudePath", "claude"),
+    claudeModel: configuration.get<string>("claudeModel", "claude-haiku-4-5-20251001")
   };
 }
 

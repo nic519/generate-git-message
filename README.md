@@ -29,7 +29,7 @@ Choose which local CLI provider should generate commit messages. Defaults to `co
 
 ### `generateGitMessage.model`
 
-Optional Codex model override. Leave empty to use your Codex CLI default model. Example: `gpt-5.4-mini`.
+Codex model used to generate commit messages. Defaults to `gpt-5.4-mini`.
 
 ### `generateGitMessage.reasoningEffort`
 
@@ -46,6 +46,10 @@ When enabled, the extension writes provider diagnostics to the `Generate Git Mes
 ### `generateGitMessage.claudePath`
 
 Path to the local Claude CLI executable. Defaults to `claude`.
+
+### `generateGitMessage.claudeModel`
+
+Claude model used to generate commit messages. Defaults to `claude-haiku-4-5-20251001`, Anthropic's fast Haiku 4.5 model.
 
 ### `generateGitMessage.promptTemplate`
 

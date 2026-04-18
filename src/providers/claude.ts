@@ -11,7 +11,7 @@ export function buildClaudeCommand(
 ): BuiltCommand {
   return {
     command: options.claude.claudePath,
-    args: ["-p", "--output-format", "text"],
+    args: ["-p", "--model", options.claude.claudeModel, "--output-format", "text"],
     stdin: prompt
   };
 }

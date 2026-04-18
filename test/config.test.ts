@@ -34,7 +34,7 @@ test("resolveCodexOptions uses codex defaults", () => {
   const options = resolveCodexOptions(makeConfiguration({}));
 
   assert.equal(options.codexPath, "codex");
-  assert.equal(options.model, "");
+  assert.equal(options.model, "gpt-5.4-mini");
   assert.equal(options.reasoningEffort, "medium");
 });
 
@@ -102,7 +102,8 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
       "generateGitMessage.debugLogging": true,
       "generateGitMessage.promptTemplate": "Commit:\n{{diff}}",
       "generateGitMessage.timeoutMs": 15000,
-      "generateGitMessage.claudePath": "/usr/local/bin/claude"
+      "generateGitMessage.claudePath": "/usr/local/bin/claude",
+      "generateGitMessage.claudeModel": "claude-sonnet-4-6"
     })
   );
 
@@ -114,6 +115,7 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
   assert.equal(options.codex.model, "gpt-5.4-mini");
   assert.equal(options.codex.reasoningEffort, "high");
   assert.equal(options.claude.claudePath, "/usr/local/bin/claude");
+  assert.equal(options.claude.claudeModel, "claude-sonnet-4-6");
 });
 
 test("package manifest defaults stay aligned with resolver defaults", () => {
@@ -144,9 +146,13 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   ]);
   assert.equal(properties["generateGitMessage.provider"].default, "codex");
   assert.equal(properties["generateGitMessage.codexPath"].default, "codex");
+  assert.equal(properties["generateGitMessage.model"].default, "gpt-5.4-mini");
   assert.equal(properties["generateGitMessage.claudePath"].default, "claude");
+  assert.equal(properties["generateGitMessage.claudeModel"].default, "claude-haiku-4-5-20251001");
   assert.equal(properties["generateGitMessage.reasoningEffort"].default, "medium");
   assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
+  assert.match(String(properties["generateGitMessage.promptTemplate"].default), /\n- 直接只输出最终 commit message/);
+  assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 20000);
 
   assert.deepEqual(contributes.viewsContainers?.activitybar, [

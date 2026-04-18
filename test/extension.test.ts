@@ -33,11 +33,13 @@ test("getProviderDebugLines uses Claude fields for the claude provider", () => {
   const options = resolveExtensionOptions(
     makeConfiguration({
       "generateGitMessage.provider": "claude",
-      "generateGitMessage.claudePath": "/usr/local/bin/claude"
+      "generateGitMessage.claudePath": "/usr/local/bin/claude",
+      "generateGitMessage.claudeModel": "claude-haiku-4-5-20251001"
     })
   );
 
   assert.deepEqual(getProviderDebugLines(options), [
-    "  claudePath: /usr/local/bin/claude"
+    "  claudePath: /usr/local/bin/claude",
+    "  claudeModel: claude-haiku-4-5-20251001"
   ]);
 });

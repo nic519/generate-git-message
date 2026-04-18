@@ -7,7 +7,8 @@ test("buildClaudeCommand uses the default local claude executable", () => {
   const command = buildClaudeCommand(
     {
       claude: {
-        claudePath: "claude"
+        claudePath: "claude",
+        claudeModel: "claude-haiku-4-5-20251001"
       }
     },
     "feat: add provider support",
@@ -16,6 +17,6 @@ test("buildClaudeCommand uses the default local claude executable", () => {
   );
 
   assert.equal(command.command, "claude");
-  assert.deepEqual(command.args, ["-p", "--output-format", "text"]);
+  assert.deepEqual(command.args, ["-p", "--model", "claude-haiku-4-5-20251001", "--output-format", "text"]);
   assert.equal(command.stdin, "feat: add provider support");
 });

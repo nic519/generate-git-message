@@ -3,7 +3,8 @@ import { type ExtensionOptions } from "./config";
 export function getProviderDebugLines(options: ExtensionOptions): string[] {
   if (options.provider === "claude") {
     return [
-      `  claudePath: ${options.claude.claudePath}`
+      `  claudePath: ${options.claude.claudePath}`,
+      `  claudeModel: ${options.claude.claudeModel}`
     ];
   }
 

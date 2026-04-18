@@ -20,10 +20,11 @@ export interface SettingsPanelState {
   };
   claude: {
     claudePath: string;
+    claudeModel: string;
   };
 }
 
-export interface SettingsPanelSaveMessage extends SettingsPanelState {}
+export interface SettingsPanelSaveMessage extends SettingsPanelState { }
 
 export interface SettingsPanelUpdate {
   key: string;
@@ -52,7 +53,8 @@ export function getSettingsPanelState(configuration: ConfigurationLike): Setting
       reasoningEffort: options.codex.reasoningEffort
     },
     claude: {
-      claudePath: options.claude.claudePath
+      claudePath: options.claude.claudePath,
+      claudeModel: options.claude.claudeModel
     }
   };
 }
@@ -74,7 +76,8 @@ export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveM
     { key: "codexPath", value: message.codex.codexPath },
     { key: "model", value: message.codex.model },
     { key: "reasoningEffort", value: message.codex.reasoningEffort },
-    { key: "claudePath", value: message.claude.claudePath }
+    { key: "claudePath", value: message.claude.claudePath },
+    { key: "claudeModel", value: message.claude.claudeModel }
   ];
 }
 
@@ -234,7 +237,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     }
 
     textarea {
-      min-height: 108px;
+      min-height: 220px;
       resize: vertical;
     }
 
@@ -338,7 +341,6 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     <section class="hero">
       <p class="eyebrow">Settings</p>
       <h1>Generate Git Message</h1>
-      <p>Configure the local provider, prompt, and runtime options. Values are shown directly in each field, and saved settings keep their existing scope.</p>
     </section>
 
     <form id="settings-form">
@@ -420,6 +422,10 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
               <span>Claude path</span>
               <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
             </label>
+            <label>
+              <span>Claude model</span>
+              <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
+            </label>
           </div>
         </div>
       </div>
@@ -469,7 +475,8 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
           reasoningEffort: String(values.get('reasoningEffort') || 'medium')
         },
         claude: {
-          claudePath: String(values.get('claudePath') || '')
+          claudePath: String(values.get('claudePath') || ''),
+          claudeModel: String(values.get('claudeModel') || '')
         }
       };
 
@@ -512,7 +519,8 @@ function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage
     isString(value.codex.model) &&
     isReasoningEffort(value.codex.reasoningEffort) &&
     isRecord(value.claude) &&
-    isString(value.claude.claudePath)
+    isString(value.claude.claudePath) &&
+    isString(value.claude.claudeModel)
   );
 }
 

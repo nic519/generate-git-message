@@ -83,8 +83,8 @@
         },
         "generateGitMessage.model": {
           "type": "string",
-          "default": "",
-          "description": "Optional Codex model override, for example gpt-5.4-mini."
+          "default": "gpt-5.4-mini",
+          "description": "Codex model used to generate commit messages."
         },
         "generateGitMessage.reasoningEffort": {
           "type": "string",
@@ -108,9 +108,14 @@
           "default": "claude",
           "description": "Path to the local Claude CLI executable."
         },
+        "generateGitMessage.claudeModel": {
+          "type": "string",
+          "default": "claude-haiku-4-5-20251001",
+          "description": "Claude model used to generate commit messages."
+        },
         "generateGitMessage.promptTemplate": {
           "type": "string",
-          "default": "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\\n- 直接只输出最终 commit message\\n- 不要解释\\n- 默认使用 Conventional Commits 风格，但描述使用中文\\n- 尽量准确概括本次变更\\n- 如果无法判断，给出最稳妥的一行提交信息\\n\\n{{diff}}",
+          "default": "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\n- 直接只输出最终 commit message\n- 不要解释\n- 默认使用 Conventional Commits 风格，但描述使用中文\n- 尽量准确概括本次变更\n- 如果无法判断，给出最稳妥的一行提交信息\n\n{{diff}}",
           "description": "Prompt template shared by the selected provider. Use {{diff}} as the Git diff placeholder."
         },
         "generateGitMessage.timeoutMs": {
