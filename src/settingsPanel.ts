@@ -445,8 +445,8 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       </div>
 
       <div class="footer-bar">
+        <p class="helper">Changes save automatically.</p>
         <div class="actions">
-          <button class="secondary" type="reset">Reset Form</button>
           <button class="secondary" id="generate-message-button" type="button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
@@ -456,7 +456,6 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
             </svg>
             <span>Generate Message</span>
           </button>
-          <button class="primary" type="submit">Save Settings</button>
         </div>
       </div>
     </form>
@@ -467,12 +466,11 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     const state = ${jsonState};
     const form = document.getElementById('settings-form');
     const generateButton = document.getElementById('generate-message-button');
+    let saveTimer;
 
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-
+    const collectState = () => {
       const values = new FormData(form);
-      const nextState = {
+      return {
         provider: String(values.get('provider') || state.provider),
         sharedPromptTemplate: String(values.get('sharedPromptTemplate') || ''),
         common: {
@@ -490,8 +488,24 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
           claudeModel: String(values.get('claudeModel') || '')
         }
       };
+    };
 
-      vscode.postMessage({ type: 'saveSettings', state: nextState });
+    const saveSettings = () => {
+      window.clearTimeout(saveTimer);
+      vscode.postMessage({ type: 'saveSettings', state: collectState() });
+    };
+
+    const scheduleSave = () => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(saveSettings, 450);
+    };
+
+    form.addEventListener('input', () => {
+      scheduleSave();
+    });
+
+    form.addEventListener('change', () => {
+      saveSettings();
     });
 
     generateButton.addEventListener('click', () => {

@@ -322,11 +322,15 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Claude model/);
   assert.match(html, /claude-haiku-4-5-20251001/);
-  assert.match(html, /Save Settings/);
+  assert.match(html, /Changes save automatically/);
+  assert.match(html, /form\.addEventListener\('input'/);
+  assert.match(html, /form\.addEventListener\('change'/);
   assert.match(html, /Generate Message/);
   assert.match(html, /M11\.017 2\.814/);
   assert.match(html, /M20 2v4/);
   assert.match(html, /circle cx="4" cy="20" r="2"/);
+  assert.doesNotMatch(html, /Save Settings/);
+  assert.doesNotMatch(html, /type="submit"/);
   assert.doesNotMatch(html, /Active Provider/);
   assert.doesNotMatch(html, /Timeout Window/);
   assert.doesNotMatch(html, /Prompt Mode/);
