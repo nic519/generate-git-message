@@ -1,0 +1,8 @@
+src/**
+test/**
+docs/**
+.vscode/**
+dist/test/**
+tsconfig.json
+.gitignore
+package-lock.json
