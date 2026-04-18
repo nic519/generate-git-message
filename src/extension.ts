@@ -1,15 +1,34 @@
 import * as vscode from "vscode";
 
-import { resolveCodexOptions } from "./config";
-import { CodexExecutionError, generateMessage } from "./codex";
+import { resolveExtensionOptions } from "./config";
+import { getProviderDebugLines } from "./debugLog";
 import { getGitApi, pickRepository } from "./git";
 import { getRepositoryDiff } from "./repositoryDiff";
+import { generateMessage, getProviderDisplayName } from "./providers";
+import {
+  applySettingsPanelSaveMessage,
+  buildSettingsPanelHtml,
+  getSettingsPanelState,
+  getSettingsPanelSaveTarget,
+  isSettingsPanelSaveMessage
+} from "./settingsPanel";
 import { applyCommitMessage } from "./writeMessage";
 
 export function activate(context: vscode.ExtensionContext): void {
-  const outputChannel = vscode.window.createOutputChannel("Codex Commit");
+  const outputChannel = vscode.window.createOutputChannel("Generate Git Message");
+  let settingsPanel: vscode.WebviewPanel | undefined;
 
-  const disposable = vscode.commands.registerCommand("codexCommit.generateMessage", async () => {
+  const refreshSettingsPanel = () => {
+    if (!settingsPanel) {
+      return;
+    }
+
+    const configuration = vscode.workspace.getConfiguration("generateGitMessage");
+    const state = getSettingsPanelState(configuration);
+    settingsPanel.webview.html = buildSettingsPanelHtml(settingsPanel.webview, state);
+  };
+
+  const disposable = vscode.commands.registerCommand("generateGitMessage.generateMessage", async () => {
     const git = await getGitApi();
     if (!git) {
       void vscode.window.showErrorMessage("The built-in Git extension is not available.");
@@ -18,7 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const repository = await pickRepository(git.repositories);
     if (!repository) {
-      void vscode.window.showWarningMessage("No Git repository is available for Codex Commit.");
+      void vscode.window.showWarningMessage("No Git repository is available for Generate Git Message.");
       return;
     }
 
@@ -34,47 +53,98 @@ export function activate(context: vscode.ExtensionContext): void {
       );
     }
 
-    const options = resolveCodexOptions(vscode.workspace.getConfiguration("codexCommit"));
+    const options = resolveExtensionOptions(vscode.workspace.getConfiguration("generateGitMessage"));
+    const providerName = getProviderDisplayName(options.provider);
 
     try {
       const result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: "Generating commit message with Codex",
+          title: `Generating commit message with ${providerName}`,
           cancellable: false
         },
         async () => generateMessage(options, repositoryDiff.diff)
       );
 
-      if (options.debugLogging) {
-        writeDebugLog(outputChannel, repositoryDiff.source, options, result.debug);
+      if (options.common.debugLogging) {
+        writeDebugLog(outputChannel, providerName, repositoryDiff.source, options, result.debug);
       }
 
       applyCommitMessage(repository, result.message);
     } catch (error) {
-      if (options.debugLogging) {
-        outputChannel.appendLine(`[${new Date().toISOString()}] Codex Commit failed`);
+      if (options.common.debugLogging) {
+        outputChannel.appendLine(`[${new Date().toISOString()}] ${providerName} Commit failed`);
         outputChannel.appendLine(`  reason: ${error instanceof Error ? error.message : String(error)}`);
         outputChannel.show(true);
       }
 
-      const message =
-        error instanceof CodexExecutionError
-          ? error.message
-          : "Failed to generate a commit message with Codex.";
-      void vscode.window.showErrorMessage(message);
+      void vscode.window.showErrorMessage(
+        error instanceof Error ? error.message : `Failed to generate a commit message with ${providerName}.`
+      );
     }
   });
 
-  context.subscriptions.push(disposable, outputChannel);
+  const openSettingsPanelDisposable = vscode.commands.registerCommand("generateGitMessage.openSettingsPanel", () => {
+    if (settingsPanel) {
+      refreshSettingsPanel();
+      settingsPanel.reveal(vscode.ViewColumn.Beside);
+      return;
+    }
+
+    settingsPanel = vscode.window.createWebviewPanel(
+      "generateGitMessageSettings",
+      "Generate Git Message Settings",
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true
+      }
+    );
+
+    refreshSettingsPanel();
+
+    const messageDisposable = settingsPanel.webview.onDidReceiveMessage(async (message: unknown) => {
+      if (!isSettingsPanelSaveMessage(message)) {
+        return;
+      }
+
+      const configuration = vscode.workspace.getConfiguration("generateGitMessage");
+      await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
+        await configuration.update(
+          key,
+          value,
+          target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+        );
+      }, (key) => getSettingsPanelSaveTarget(configuration, key));
+
+      refreshSettingsPanel();
+      void vscode.window.showInformationMessage("Generate Git Message settings saved.");
+    });
+
+    const panelDisposable = settingsPanel.onDidDispose(() => {
+      messageDisposable.dispose();
+      settingsPanel = undefined;
+    });
+
+    context.subscriptions.push(messageDisposable, panelDisposable);
+  });
+
+  const configurationDisposable = vscode.workspace.onDidChangeConfiguration((event) => {
+    if (settingsPanel && event.affectsConfiguration("generateGitMessage")) {
+      refreshSettingsPanel();
+    }
+  });
+
+  context.subscriptions.push(disposable, openSettingsPanelDisposable, configurationDisposable, outputChannel);
 }
 
 export function deactivate(): void {}
 
 function writeDebugLog(
   outputChannel: vscode.OutputChannel,
+  providerName: string,
   diffSource: "staged" | "workingTree",
-  options: ReturnType<typeof resolveCodexOptions>,
+  options: ReturnType<typeof resolveExtensionOptions>,
   debug: {
     command: string;
     args: string[];
@@ -82,10 +152,11 @@ function writeDebugLog(
     stderrSummary: string;
   }
 ): void {
-  outputChannel.appendLine(`[${new Date().toISOString()}] Codex Commit request`);
+  outputChannel.appendLine(`[${new Date().toISOString()}] ${providerName} Commit request`);
   outputChannel.appendLine(`  diffSource: ${diffSource}`);
-  outputChannel.appendLine(`  model: ${options.model || "(default)"}`);
-  outputChannel.appendLine(`  reasoningEffort: ${options.reasoningEffort}`);
+  for (const line of getProviderDebugLines(options)) {
+    outputChannel.appendLine(line);
+  }
   outputChannel.appendLine(`  command: ${debug.command} ${debug.args.join(" ")}`);
   outputChannel.appendLine(`  durationMs: ${debug.durationMs}`);
 

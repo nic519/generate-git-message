@@ -8,37 +8,93 @@ export const DEFAULT_PROMPT_TEMPLATE =
   "{{diff}}";
 
 export const REASONING_EFFORTS = ["none", "low", "medium", "high", "xhigh"] as const;
+export const PROVIDERS = ["codex", "claude"] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+export type Provider = (typeof PROVIDERS)[number];
 
 export interface ConfigurationLike {
   get<T>(key: string, defaultValue?: T): T;
+  inspect?(key: string): {
+    defaultValue?: unknown;
+    globalValue?: unknown;
+    workspaceFolderValue?: unknown;
+    workspaceValue?: unknown;
+  } | undefined;
+}
+
+export interface CommonOptions {
+  debugLogging: boolean;
+  promptTemplate: string;
+  timeoutMs: number;
 }
 
 export interface CodexOptions {
   codexPath: string;
   model: string;
   reasoningEffort: ReasoningEffort;
-  debugLogging: boolean;
   commandTemplate: string;
-  promptTemplate: string;
-  timeoutMs: number;
+}
+
+export interface ClaudeOptions {
+  claudePath: string;
+  claudeCommandTemplate: string;
+}
+
+export interface ExtensionOptions {
+  provider: Provider;
+  common: CommonOptions;
+  codex: CodexOptions;
+  claude: ClaudeOptions;
 }
 
 export function resolveCodexOptions(configuration: ConfigurationLike): CodexOptions {
+  return resolveCodexProviderOptions(configuration);
+}
+
+export function resolveCommonOptions(configuration: ConfigurationLike): CommonOptions {
+  return {
+    debugLogging: configuration.get<boolean>("debugLogging", false),
+    promptTemplate: configuration.get<string>("promptTemplate", DEFAULT_PROMPT_TEMPLATE),
+    timeoutMs: configuration.get<number>("timeoutMs", 20_000)
+  };
+}
+
+export function resolveCodexProviderOptions(configuration: ConfigurationLike): CodexOptions {
   const reasoningEffort = configuration.get<string>("reasoningEffort", "medium");
 
   return {
     codexPath: configuration.get<string>("codexPath", "codex"),
     model: configuration.get<string>("model", ""),
     reasoningEffort: isReasoningEffort(reasoningEffort) ? reasoningEffort : "medium",
-    debugLogging: configuration.get<boolean>("debugLogging", false),
-    commandTemplate: configuration.get<string>("commandTemplate", ""),
-    promptTemplate: configuration.get<string>("promptTemplate", DEFAULT_PROMPT_TEMPLATE),
-    timeoutMs: configuration.get<number>("timeoutMs", 20_000)
+    commandTemplate: configuration.get<string>("commandTemplate", "")
   };
+}
+
+export function resolveClaudeOptions(configuration: ConfigurationLike): ClaudeOptions {
+  return {
+    claudePath: configuration.get<string>("claudePath", "claude"),
+    claudeCommandTemplate: configuration.get<string>("claudeCommandTemplate", "")
+  };
+}
+
+export function resolveExtensionOptions(configuration: ConfigurationLike): ExtensionOptions {
+  return {
+    provider: resolveProvider(configuration.get<string>("provider", "codex")),
+    common: resolveCommonOptions(configuration),
+    codex: resolveCodexProviderOptions(configuration),
+    claude: resolveClaudeOptions(configuration)
+  };
+}
+
+function resolveProvider(value: string): Provider {
+  return isProvider(value) ? value : "codex";
 }
 
 function isReasoningEffort(value: string): value is ReasoningEffort {
   return REASONING_EFFORTS.includes(value as ReasoningEffort);
+}
+
+function isProvider(value: string): value is Provider {
+  return PROVIDERS.includes(value as Provider);
 }

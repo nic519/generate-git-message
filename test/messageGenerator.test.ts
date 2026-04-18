@@ -1,20 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildCommand, normalizeMessage, selectCommitMessage, summarizeStderr } from "../src/codex";
+import { normalizeMessage, selectCommitMessage, summarizeStderr } from "../src/messageGenerator";
+import { buildCodexCommand } from "../src/providers/codex";
+import { resolveShellCommand } from "../src/providers/shell";
 
-test("buildCommand uses the default codex executable", () => {
-  const command = buildCommand(
+test("buildCodexCommand uses the default codex executable", () => {
+  const command = buildCodexCommand(
     {
-      codexPath: "codex",
-      model: "",
-      reasoningEffort: "medium",
-      debugLogging: false,
-      commandTemplate: "",
-      promptTemplate: "Diff:\n{{diff}}",
-      timeoutMs: 60000
+      codex: {
+        codexPath: "codex",
+        model: "",
+        reasoningEffort: "medium",
+        commandTemplate: ""
+      }
     },
-    "diff --git a/file b/file",
+    "Diff:\ndiff --git a/file b/file",
     "/tmp/codex-prompt.txt",
     "/tmp/codex-last-message.txt"
   );
@@ -32,18 +33,17 @@ test("buildCommand uses the default codex executable", () => {
   assert.equal(command.stdin, "Diff:\ndiff --git a/file b/file");
 });
 
-test("buildCommand adds model and reasoning overrides when configured", () => {
-  const command = buildCommand(
+test("buildCodexCommand adds model and reasoning overrides when configured", () => {
+  const command = buildCodexCommand(
     {
-      codexPath: "codex",
-      model: "gpt-5.4-mini",
-      reasoningEffort: "low",
-      debugLogging: false,
-      commandTemplate: "",
-      promptTemplate: "Diff:\n{{diff}}",
-      timeoutMs: 60000
+      codex: {
+        codexPath: "codex",
+        model: "gpt-5.4-mini",
+        reasoningEffort: "low",
+        commandTemplate: ""
+      }
     },
-    "diff --git a/file b/file",
+    "Diff:\ndiff --git a/file b/file",
     "/tmp/codex-prompt.txt",
     "/tmp/codex-last-message.txt"
   );
@@ -62,25 +62,32 @@ test("buildCommand adds model and reasoning overrides when configured", () => {
   assert.equal(command.stdin, "Diff:\ndiff --git a/file b/file");
 });
 
-test("buildCommand expands the prompt file placeholder in a custom template", () => {
-  const command = buildCommand(
+test("buildCodexCommand expands the prompt file placeholder in a custom template", () => {
+  const command = buildCodexCommand(
     {
-      codexPath: "codex",
-      model: "",
-      reasoningEffort: "medium",
-      debugLogging: false,
-      commandTemplate: "custom-codex --input {{promptFile}} --mode commit",
-      promptTemplate: "unused {{diff}}",
-      timeoutMs: 60000
+      codex: {
+        codexPath: "codex",
+        model: "",
+        reasoningEffort: "medium",
+        commandTemplate: 'custom-codex --input "{{promptFile}}" --mode commit'
+      }
     },
-    "ignored",
-    "/tmp/codex-prompt.txt",
+    "unused prompt text",
+    "/tmp/codex prompt file.txt",
     "/tmp/codex-last-message.txt"
   );
 
-  assert.equal(command.command, "custom-codex");
-  assert.deepEqual(command.args, ["--input", "/tmp/codex-prompt.txt", "--mode", "commit"]);
+  const shell = resolveShellCommand();
+  assert.equal(command.command, shell.command);
+  assert.deepEqual(command.args, [...shell.args, 'custom-codex --input "/tmp/codex prompt file.txt" --mode commit']);
   assert.equal(command.stdin, undefined);
+});
+
+test("resolveShellCommand returns the Windows command shape when requested", () => {
+  const shell = resolveShellCommand("win32", "C:\\Windows\\System32\\cmd.exe");
+
+  assert.equal(shell.command, "C:\\Windows\\System32\\cmd.exe");
+  assert.deepEqual(shell.args, ["/d", "/s", "/c"]);
 });
 
 test("normalizeMessage trims surrounding whitespace", () => {

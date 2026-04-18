@@ -1,56 +1,67 @@
-import { type CodexOptions } from "./config";
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-export interface BuiltCommand {
-  command: string;
-  args: string[];
-  stdin?: string;
+import { type BuiltCommand, type ExecutionContext, type GeneratedMessageResult } from "./providers/types";
+
+export interface ExecutionErrorMessages {
+  emptyMessage: string;
+  missingCli: string;
+  templateError: string;
+  timeout: string;
+  unexpected: string;
 }
 
-export interface GeneratedMessageDebug {
-  command: string;
-  args: string[];
-  durationMs: number;
-  stderrSummary: string;
-}
-
-export interface GeneratedMessageResult {
-  message: string;
-  debug: GeneratedMessageDebug;
-}
-
-export class CodexExecutionError extends Error {
+export class MessageGenerationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = "CodexExecutionError";
+    this.name = "MessageGenerationError";
   }
 }
 
-export function buildCommand(
-  options: CodexOptions,
-  diff: string,
-  promptFile: string,
-  outputFile: string
-): BuiltCommand {
-  if (options.commandTemplate.trim()) {
-    return parseCommandTemplate(options.commandTemplate.replaceAll("{{promptFile}}", promptFile));
-  }
+export async function generateMessage(
+  prompt: string,
+  timeoutMs: number,
+  buildCommand: (context: ExecutionContext) => BuiltCommand,
+  errorMessages: ExecutionErrorMessages
+): Promise<GeneratedMessageResult> {
+  const tempDirectory = await mkdtemp(join(tmpdir(), "generate-git-message-"));
+  const promptFile = join(tempDirectory, "prompt.txt");
+  const outputFile = join(tempDirectory, "last-message.txt");
 
-  const args = ["exec", "--skip-git-repo-check", "-o", outputFile];
-  if (options.model.trim()) {
-    args.push("-m", options.model.trim());
-  }
-  args.push("-c", `model_reasoning_effort="${options.reasoningEffort}"`);
-  args.push("-");
+  try {
+    await writeFile(promptFile, prompt, "utf8");
 
-  return {
-    command: options.codexPath,
-    args,
-    stdin: options.promptTemplate.replace("{{diff}}", diff)
-  };
+    const { command, args, stdin } = buildCommand({ prompt, promptFile, outputFile });
+    if (!command) {
+      throw new MessageGenerationError(errorMessages.templateError);
+    }
+
+    const startedAt = Date.now();
+    const { stdout, stderr } = await runCommand(command, args, stdin, timeoutMs);
+    const durationMs = Date.now() - startedAt;
+
+    const outputFileContent = await readOutputFile(outputFile);
+    const message = selectCommitMessage(stdout, outputFileContent);
+    if (!message) {
+      throw new MessageGenerationError(errorMessages.emptyMessage);
+    }
+
+    return {
+      message,
+      debug: {
+        command,
+        args,
+        durationMs,
+        stderrSummary: summarizeStderr(stderr)
+      }
+    };
+  } catch (error) {
+    throw toExecutionError(error, errorMessages);
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
 }
 
 export function normalizeMessage(output: string): string {
@@ -111,53 +122,6 @@ export function summarizeStderr(stderr: string): string {
   }
 
   return filteredLines.join("\n");
-}
-
-export async function generateMessage(options: CodexOptions, diff: string): Promise<GeneratedMessageResult> {
-  const prompt = options.promptTemplate.replace("{{diff}}", diff);
-  const tempDirectory = await mkdtemp(join(tmpdir(), "codex-commit-"));
-  const promptFile = join(tempDirectory, "prompt.txt");
-  const outputFile = join(tempDirectory, "last-message.txt");
-
-  try {
-    await writeFile(promptFile, prompt, "utf8");
-
-    const { command, args, stdin } = buildCommand(options, diff, promptFile, outputFile);
-    if (!command) {
-      throw new CodexExecutionError("Codex command template did not produce an executable.");
-    }
-
-    const startedAt = Date.now();
-    const { stdout, stderr } = await runCommand(command, args, stdin, options.timeoutMs);
-    const durationMs = Date.now() - startedAt;
-
-    const outputFileContent = await readOutputFile(outputFile);
-    const message = selectCommitMessage(stdout, outputFileContent);
-    if (!message) {
-      throw new CodexExecutionError("Codex returned an empty commit message.");
-    }
-
-    return {
-      message,
-      debug: {
-        command,
-        args,
-        durationMs,
-        stderrSummary: summarizeStderr(stderr)
-      }
-    };
-  } catch (error) {
-    throw toCodexExecutionError(error);
-  } finally {
-    await rm(tempDirectory, { recursive: true, force: true });
-  }
-}
-
-function parseCommandTemplate(template: string): BuiltCommand {
-  const parts = template.trim().split(/\s+/).filter(Boolean);
-  const [command = "", ...args] = parts;
-
-  return { command, args };
 }
 
 async function runCommand(
@@ -242,24 +206,24 @@ async function readOutputFile(path: string): Promise<string> {
   }
 }
 
-function toCodexExecutionError(error: unknown): CodexExecutionError {
-  if (error instanceof CodexExecutionError) {
+function toExecutionError(error: unknown, errorMessages: ExecutionErrorMessages): MessageGenerationError {
+  if (error instanceof MessageGenerationError) {
     return error;
   }
 
   if (isNodeError(error) && error.code === "ENOENT") {
-    return new CodexExecutionError("Could not find the Codex CLI. Check codexCommit.codexPath.");
+    return new MessageGenerationError(errorMessages.missingCli);
   }
 
   if (isNodeError(error) && error.code === "ETIMEDOUT") {
-    return new CodexExecutionError("Codex CLI timed out before returning a commit message.");
+    return new MessageGenerationError(errorMessages.timeout);
   }
 
   if (error instanceof Error) {
-    return new CodexExecutionError(error.message);
+    return new MessageGenerationError(error.message);
   }
 
-  return new CodexExecutionError("Codex CLI failed unexpectedly.");
+  return new MessageGenerationError(errorMessages.unexpected);
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {

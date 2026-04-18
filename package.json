@@ -1,8 +1,8 @@
 {
-  "name": "codex-commit",
-  "displayName": "Codex Commit",
-  "description": "Generate git commit messages from staged changes with local Codex CLI.",
-  "version": "0.0.2",
+  "name": "generate-git-message",
+  "displayName": "Generate Git Message",
+  "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
+  "version": "0.0.3",
   "publisher": "nicholas",
   "license": "MIT",
   "author": {
@@ -12,8 +12,10 @@
     "git",
     "commit",
     "codex",
+    "claude",
     "source-control",
-    "conventional-commits"
+    "conventional-commits",
+    "vscode"
   ],
   "engines": {
     "vscode": "^1.99.0"
@@ -22,41 +24,62 @@
     "Source Control"
   ],
   "activationEvents": [
-    "onCommand:codexCommit.generateMessage"
+    "onCommand:generateGitMessage.generateMessage",
+    "onCommand:generateGitMessage.openSettingsPanel"
   ],
   "main": "./dist/src/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "codexCommit.generateMessage",
+        "command": "generateGitMessage.generateMessage",
         "title": "Generate Commit Message",
-        "category": "Codex Commit",
+        "category": "Generate Git Message",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "generateGitMessage.openSettingsPanel",
+        "title": "Open Settings Panel",
+        "category": "Generate Git Message"
       }
     ],
     "menus": {
       "scm/title": [
         {
-          "command": "codexCommit.generateMessage",
+          "command": "generateGitMessage.generateMessage",
           "group": "navigation",
           "when": "scmProvider == git"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "generateGitMessage.openSettingsPanel",
+          "when": "true"
         }
       ]
     },
     "configuration": {
-      "title": "Codex Commit",
+      "title": "Generate Git Message",
       "properties": {
-        "codexCommit.codexPath": {
+        "generateGitMessage.codexPath": {
           "type": "string",
           "default": "codex",
           "description": "Path to the local Codex CLI executable."
         },
-        "codexCommit.model": {
+        "generateGitMessage.provider": {
+          "type": "string",
+          "default": "codex",
+          "enum": [
+            "codex",
+            "claude"
+          ],
+          "description": "Provider used to generate commit messages."
+        },
+        "generateGitMessage.model": {
           "type": "string",
           "default": "",
           "description": "Optional Codex model override, for example gpt-5.4-mini."
         },
-        "codexCommit.reasoningEffort": {
+        "generateGitMessage.reasoningEffort": {
           "type": "string",
           "default": "medium",
           "enum": [
@@ -68,26 +91,36 @@
           ],
           "description": "Reasoning effort for the Codex CLI request."
         },
-        "codexCommit.debugLogging": {
+        "generateGitMessage.debugLogging": {
           "type": "boolean",
           "default": false,
-          "description": "Write Codex CLI diagnostics to the 'Codex Commit' output channel."
+          "description": "Write provider diagnostics to the 'Generate Git Message' output channel."
         },
-        "codexCommit.commandTemplate": {
+        "generateGitMessage.commandTemplate": {
           "type": "string",
           "default": "",
           "description": "Optional full command template. Use {{promptFile}} to reference the temporary prompt file."
         },
-        "codexCommit.promptTemplate": {
+        "generateGitMessage.claudePath": {
+          "type": "string",
+          "default": "claude",
+          "description": "Path to the local Claude CLI executable."
+        },
+        "generateGitMessage.claudeCommandTemplate": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Claude command template. Use {{promptFile}} to reference the temporary prompt file."
+        },
+        "generateGitMessage.promptTemplate": {
           "type": "string",
           "default": "根据以下 git diff，生成一个简洁明确的 git commit message。要求：\\n- 直接只输出最终 commit message\\n- 不要解释\\n- 默认使用 Conventional Commits 风格，但描述使用中文\\n- 尽量准确概括本次变更\\n- 如果无法判断，给出最稳妥的一行提交信息\\n\\n{{diff}}",
-          "description": "Prompt template passed to Codex. Use {{diff}} as the Git diff placeholder."
+          "description": "Prompt template shared by the selected provider. Use {{diff}} as the Git diff placeholder."
         },
-        "codexCommit.timeoutMs": {
+        "generateGitMessage.timeoutMs": {
           "type": "number",
           "default": 20000,
           "minimum": 1000,
-          "description": "Timeout for the Codex CLI command."
+          "description": "Timeout for the selected CLI command."
         }
       }
     }
