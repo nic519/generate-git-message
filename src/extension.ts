@@ -16,16 +16,15 @@ import { applyCommitMessage } from "./writeMessage";
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Generate Git Message");
-  let settingsPanel: vscode.WebviewPanel | undefined;
+  let sidebarView: vscode.WebviewView | undefined;
 
-  const refreshSettingsPanel = () => {
-    if (!settingsPanel) {
+  const refreshSidebarView = () => {
+    if (!sidebarView) {
       return;
     }
 
     const configuration = vscode.workspace.getConfiguration("generateGitMessage");
-    const state = getSettingsPanelState(configuration);
-    settingsPanel.webview.html = buildSettingsPanelHtml(settingsPanel.webview, state);
+    sidebarView.webview.html = buildSettingsPanelHtml(sidebarView.webview, getSettingsPanelState(configuration));
   };
 
   const disposable = vscode.commands.registerCommand("generateGitMessage.generateMessage", async () => {
@@ -84,58 +83,62 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  const openSettingsPanelDisposable = vscode.commands.registerCommand("generateGitMessage.openSettingsPanel", () => {
-    if (settingsPanel) {
-      refreshSettingsPanel();
-      settingsPanel.reveal(vscode.ViewColumn.Beside);
-      return;
+  const sidebarProviderDisposable = vscode.window.registerWebviewViewProvider("generateGitMessage.sidebar", {
+    resolveWebviewView(webviewView) {
+      sidebarView = webviewView;
+      sidebarView.webview.options = {
+        enableScripts: true
+      };
+      refreshSidebarView();
+
+      const messageDisposable = sidebarView.webview.onDidReceiveMessage(async (message: unknown) => {
+        if (!message || typeof message !== "object" || !("type" in message)) {
+          return;
+        }
+
+        if (message.type === "generateMessage") {
+          await vscode.commands.executeCommand("generateGitMessage.generateMessage");
+          return;
+        }
+
+        if (!isSettingsPanelSaveMessage(message)) {
+          return;
+        }
+
+        const configuration = vscode.workspace.getConfiguration("generateGitMessage");
+        await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
+          await configuration.update(
+            key,
+            value,
+            target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+          );
+        }, (key) => getSettingsPanelSaveTarget(configuration, key));
+
+        refreshSidebarView();
+        void vscode.window.showInformationMessage("Generate Git Message settings saved.");
+      });
+
+      const disposeDisposable = sidebarView.onDidDispose(() => {
+        messageDisposable.dispose();
+        sidebarView = undefined;
+      });
+
+      context.subscriptions.push(messageDisposable, disposeDisposable);
     }
-
-    settingsPanel = vscode.window.createWebviewPanel(
-      "generateGitMessageSettings",
-      "Generate Git Message Settings",
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true
-      }
-    );
-
-    refreshSettingsPanel();
-
-    const messageDisposable = settingsPanel.webview.onDidReceiveMessage(async (message: unknown) => {
-      if (!isSettingsPanelSaveMessage(message)) {
-        return;
-      }
-
-      const configuration = vscode.workspace.getConfiguration("generateGitMessage");
-      await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
-        await configuration.update(
-          key,
-          value,
-          target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
-        );
-      }, (key) => getSettingsPanelSaveTarget(configuration, key));
-
-      refreshSettingsPanel();
-      void vscode.window.showInformationMessage("Generate Git Message settings saved.");
-    });
-
-    const panelDisposable = settingsPanel.onDidDispose(() => {
-      messageDisposable.dispose();
-      settingsPanel = undefined;
-    });
-
-    context.subscriptions.push(messageDisposable, panelDisposable);
   });
 
   const configurationDisposable = vscode.workspace.onDidChangeConfiguration((event) => {
-    if (settingsPanel && event.affectsConfiguration("generateGitMessage")) {
-      refreshSettingsPanel();
+    if (sidebarView && event.affectsConfiguration("generateGitMessage")) {
+      refreshSidebarView();
     }
   });
 
-  context.subscriptions.push(disposable, openSettingsPanelDisposable, configurationDisposable, outputChannel);
+  context.subscriptions.push(
+    disposable,
+    sidebarProviderDisposable,
+    configurationDisposable,
+    outputChannel
+  );
 }
 
 export function deactivate(): void {}

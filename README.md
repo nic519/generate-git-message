@@ -6,7 +6,7 @@ Generate a git commit message from your Git changes with your local Codex or Cla
 
 1. Stage your changes if you want the message to reflect only what will be committed.
 2. Open the Source Control view.
-3. Click `Generate Commit Message` in the Source Control title bar.
+3. Click `Generate Commit Message` in the Source Control title bar, or open the `Generate Git Message` icon from the VS Code activity bar.
 4. Wait for the selected local provider CLI (`codex` or `claude`) to analyze the staged diff first, or fall back to current working tree changes when nothing is staged.
 5. Review or edit the generated message in the native commit input box.
 6. Use VS Code's normal commit action to create the commit.
@@ -15,7 +15,8 @@ The extension prefers staged changes. If nothing is staged, it falls back to cur
 
 ## Settings
 
-Use the built-in settings panel to choose the active provider and configure the shared prompt, CLI paths, and command templates in one place.
+Use the built-in sidebar to choose the active provider and configure the shared prompt, CLI paths, and command templates in one place.
+Open the `Generate Git Message` icon from the VS Code activity bar to access the full interface.
 When you save from the panel, existing workspace-scoped values stay in the workspace; otherwise settings fall back to global.
 
 ### `generateGitMessage.codexPath`

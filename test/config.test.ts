@@ -127,14 +127,30 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
 
 test("package manifest defaults stay aligned with resolver defaults", () => {
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+    activationEvents: string[];
     contributes: {
+      commands?: Array<{ command: string; title: string; category?: string }>;
       configuration: {
         properties: Record<string, { default: unknown }>;
       };
+      viewsContainers?: {
+        activitybar?: Array<{ id: string; title: string; icon: string }>;
+      };
+      views?: Record<string, Array<{ id: string; name: string; type?: string }>>;
     };
   };
-  const properties = packageJson.contributes.configuration.properties;
+  const contributes = packageJson.contributes;
+  const properties = contributes.configuration.properties;
 
+  assert.deepEqual(packageJson.activationEvents, ["onCommand:generateGitMessage.generateMessage", "onView:generateGitMessage.sidebar"]);
+  assert.deepEqual(contributes.commands, [
+    {
+      command: "generateGitMessage.generateMessage",
+      title: "Generate Commit Message",
+      category: "Generate Git Message",
+      icon: "$(sparkle)"
+    }
+  ]);
   assert.equal(properties["generateGitMessage.provider"].default, "codex");
   assert.equal(properties["generateGitMessage.codexPath"].default, "codex");
   assert.equal(properties["generateGitMessage.claudePath"].default, "claude");
@@ -143,4 +159,29 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.equal(properties["generateGitMessage.claudeCommandTemplate"].default, "");
   assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 20000);
+
+  assert.deepEqual(contributes.viewsContainers?.activitybar, [
+    {
+      id: "generateGitMessage",
+      title: "Generate Git Message",
+      icon: "media/activity-bar.svg"
+    }
+  ]);
+  assert.deepEqual(contributes.views?.generateGitMessage, [
+    {
+      id: "generateGitMessage.sidebar",
+      name: "Workspace",
+      type: "webview"
+    }
+  ]);
+});
+
+test("activity bar icon uses the git pull request artwork", () => {
+  const svg = readFileSync("media/activity-bar.svg", "utf8");
+
+  assert.match(svg, /viewBox="0 0 24 24"/);
+  assert.match(svg, /<circle cx="18" cy="18" r="3"\/>/);
+  assert.match(svg, /<circle cx="6" cy="6" r="3"\/>/);
+  assert.match(svg, /<path d="M13 6h3a2 2 0 0 1 2 2v7"\/>/);
+  assert.match(svg, /<line x1="6" x2="6" y1="9" y2="21"\/>/);
 });

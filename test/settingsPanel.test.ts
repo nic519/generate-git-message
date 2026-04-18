@@ -287,6 +287,40 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
   assert.match(html, /vscode-resource:/);
 });
 
+test("buildSettingsPanelHtml renders the redesigned studio layout", () => {
+  const html = buildSettingsPanelHtml(
+    { cspSource: "vscode-resource:" },
+    {
+      provider: "codex",
+      sharedPromptTemplate: "Prompt:\n{{diff}}",
+      common: {
+        timeoutMs: 20000,
+        debugLogging: true
+      },
+      codex: {
+        codexPath: "codex",
+        model: "gpt-5.4-mini",
+        reasoningEffort: "medium",
+        commandTemplate: ""
+      },
+      claude: {
+        claudePath: "claude",
+        claudeCommandTemplate: ""
+      }
+    }
+  );
+
+  assert.match(html, /Control Studio/);
+  assert.match(html, /Provider Runtime/);
+  assert.match(html, /Prompt System/);
+  assert.match(html, /Save Workspace Settings/);
+  assert.match(html, /Generate Message/);
+  assert.match(html, /M11\.017 2\.814/);
+  assert.match(html, /M20 2v4/);
+  assert.match(html, /circle cx="4" cy="20" r="2"/);
+  assert.match(html, /status-pill/);
+});
+
 test("getSettingsPanelSaveTarget falls back to global when inspect reports no workspace value", () => {
   assert.equal(
     getSettingsPanelSaveTarget({
