@@ -12,15 +12,10 @@ This extension leverages your existing AI subscription to bring the same AI-powe
 
 Zero additional cost. Zero complexity. Just works.
 
-## What it does
-
-- Generates commit messages from staged changes first.
-- Falls back to working tree changes when nothing is staged.
-- Supports Codex and Claude local CLIs.
-- Writes the result into VS Code's SCM input box.
-- Leaves the final commit action to you.
 
 ## Usage
+
+![](https://files.seeusercontent.com/2026/04/18/U4ju/ScreenShot_2026-04-19_070444_309.png)
 
 1. Open the Source Control view.
 2. Stage changes if you want the message to use only staged diffs.
