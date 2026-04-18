@@ -368,6 +368,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
               <select name="outputLanguage">
                 ${renderOutputLanguageOption("en", state.common.outputLanguage)}
                 ${renderOutputLanguageOption("zh", state.common.outputLanguage)}
+                ${renderOutputLanguageOption("zh-Hant", state.common.outputLanguage)}
                 ${renderOutputLanguageOption("ja", state.common.outputLanguage)}
               </select>
             </label>
@@ -516,7 +517,8 @@ function renderReasoningEffortOption(value: ReasoningEffort, selectedValue: Reas
 function renderOutputLanguageOption(value: OutputLanguage, selectedValue: OutputLanguage): string {
   const labels: Record<OutputLanguage, string> = {
     en: "English",
-    zh: "Chinese",
+    zh: "Chinese (Simplified)",
+    "zh-Hant": "Chinese (Traditional)",
     ja: "Japanese"
   };
 

@@ -109,11 +109,13 @@
           "enum": [
             "en",
             "zh",
+            "zh-Hant",
             "ja"
           ],
           "enumItemLabels": [
             "English",
-            "Chinese",
+            "Chinese (Simplified)",
+            "Chinese (Traditional)",
             "Japanese"
           ],
           "description": "Language used for the generated commit message."

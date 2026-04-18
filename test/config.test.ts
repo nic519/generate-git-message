@@ -155,7 +155,7 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.equal(properties["generateGitMessage.claudeModel"].default, "claude-haiku-4-5-20251001");
   assert.equal(properties["generateGitMessage.reasoningEffort"].default, "medium");
   assert.equal(properties["generateGitMessage.outputLanguage"].default, "en");
-  assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "ja"]);
+  assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "zh-Hant", "ja"]);
   assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
   assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 20000);

@@ -64,7 +64,8 @@ export function buildCommitPrompt(template: string, diff: string, outputLanguage
 function resolvePromptLanguage(outputLanguage: string): string {
   const languageNames: Record<OutputLanguage, string> = {
     en: "English",
-    zh: "Chinese",
+    zh: "Simplified Chinese",
+    "zh-Hant": "Traditional Chinese",
     ja: "Japanese"
   };
 

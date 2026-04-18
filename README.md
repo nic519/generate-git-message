@@ -48,7 +48,8 @@ When enabled, the extension writes provider diagnostics to the `Generate Git Mes
 Language used for the generated commit message. Defaults to `en`.
 
 - `en` generates English commit messages.
-- `zh` generates Chinese commit messages.
+- `zh` generates Simplified Chinese commit messages.
+- `zh-Hant` generates Traditional Chinese commit messages.
 - `ja` generates Japanese commit messages.
 
 ### `generateGitMessage.claudePath`

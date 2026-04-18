@@ -315,7 +315,8 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /Provider Runtime/);
   assert.match(html, /Output language/);
   assert.match(html, /<option value="en" selected>English<\/option>/);
-  assert.match(html, /<option value="zh">Chinese<\/option>/);
+  assert.match(html, /<option value="zh">Chinese \(Simplified\)<\/option>/);
+  assert.match(html, /<option value="zh-Hant">Chinese \(Traditional\)<\/option>/);
   assert.match(html, /<option value="ja">Japanese<\/option>/);
   assert.match(html, /Prompt System/);
   assert.match(html, /min-height: 220px/);

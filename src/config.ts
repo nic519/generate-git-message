@@ -10,7 +10,7 @@ export const DEFAULT_PROMPT_TEMPLATE =
 
 export const REASONING_EFFORTS = ["none", "low", "medium", "high", "xhigh"] as const;
 export const PROVIDERS = ["codex", "claude"] as const;
-export const OUTPUT_LANGUAGES = ["en", "zh", "ja"] as const;
+export const OUTPUT_LANGUAGES = ["en", "zh", "zh-Hant", "ja"] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 export type Provider = (typeof PROVIDERS)[number];
