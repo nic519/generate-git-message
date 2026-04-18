@@ -2,8 +2,8 @@
   "name": "generate-git-message",
   "displayName": "Generate Git Message",
   "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
-  "version": "0.0.3",
-  "publisher": "nicholas",
+  "version": "0.0.4",
+  "publisher": "thinkernicholas",
   "license": "MIT",
   "author": {
     "name": "nicholas"
