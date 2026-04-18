@@ -17,11 +17,9 @@ export interface SettingsPanelState {
     codexPath: string;
     model: string;
     reasoningEffort: ReasoningEffort;
-    commandTemplate: string;
   };
   claude: {
     claudePath: string;
-    claudeCommandTemplate: string;
   };
 }
 
@@ -51,12 +49,10 @@ export function getSettingsPanelState(configuration: ConfigurationLike): Setting
     codex: {
       codexPath: options.codex.codexPath,
       model: options.codex.model,
-      reasoningEffort: options.codex.reasoningEffort,
-      commandTemplate: options.codex.commandTemplate
+      reasoningEffort: options.codex.reasoningEffort
     },
     claude: {
-      claudePath: options.claude.claudePath,
-      claudeCommandTemplate: options.claude.claudeCommandTemplate
+      claudePath: options.claude.claudePath
     }
   };
 }
@@ -78,9 +74,7 @@ export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveM
     { key: "codexPath", value: message.codex.codexPath },
     { key: "model", value: message.codex.model },
     { key: "reasoningEffort", value: message.codex.reasoningEffort },
-    { key: "commandTemplate", value: message.codex.commandTemplate },
-    { key: "claudePath", value: message.claude.claudePath },
-    { key: "claudeCommandTemplate", value: message.claude.claudeCommandTemplate }
+    { key: "claudePath", value: message.claude.claudePath }
   ];
 }
 
@@ -111,18 +105,16 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
   <style>
     :root {
       color-scheme: dark;
-      --bg: #071018;
-      --panel: rgba(10, 16, 26, 0.86);
-      --panel-strong: rgba(11, 18, 30, 0.96);
-      --panel-soft: rgba(16, 24, 38, 0.74);
-      --line: rgba(148, 163, 184, 0.18);
-      --text: #f7fbff;
-      --muted: #98a7bd;
+      --bg: #0b1118;
+      --line: rgba(148, 163, 184, 0.22);
+      --line-soft: rgba(148, 163, 184, 0.12);
+      --text: #f4f8fd;
+      --muted: #9aa8ba;
       --accent: #6ee7c8;
       --accent-strong: #2dd4bf;
-      --accent-soft: rgba(110, 231, 200, 0.14);
-      --danger-soft: rgba(248, 113, 113, 0.16);
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+      --accent-soft: rgba(110, 231, 200, 0.11);
+      --surface: rgba(9, 14, 22, 0.78);
+      --surface-strong: rgba(12, 18, 28, 0.96);
     }
 
     * {
@@ -132,57 +124,22 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 28px;
+      padding: 18px;
       background:
-        radial-gradient(circle at top left, rgba(45, 212, 191, 0.22), transparent 28%),
-        radial-gradient(circle at top right, rgba(59, 130, 246, 0.16), transparent 24%),
-        linear-gradient(180deg, #09111b 0%, #05080d 100%);
+        radial-gradient(circle at top left, rgba(45, 212, 191, 0.12), transparent 30%),
+        linear-gradient(180deg, #0d141d 0%, #080c12 100%);
       color: var(--text);
       font: 13px/1.55 "SF Pro Display", "Segoe UI", sans-serif;
     }
 
     .shell {
-      max-width: 1180px;
-      margin: 0 auto;
       display: grid;
-      gap: 18px;
-    }
-
-    .hero,
-    .section,
-    .footer-bar {
-      position: relative;
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-strong) 100%);
+      gap: 0;
     }
 
     .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.9fr);
-      gap: 24px;
-      padding: 26px;
-      min-height: 280px;
-    }
-
-    .hero::after,
-    .section::after,
-    .footer-bar::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 48%);
-      pointer-events: none;
-    }
-
-    .hero-copy {
-      max-width: 560px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 18px;
+      padding: 0 0 18px;
+      border-bottom: 1px solid var(--line);
     }
 
     .eyebrow {
@@ -201,82 +158,36 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     }
 
     h1 {
-      font-size: clamp(34px, 4vw, 56px);
-      line-height: 0.95;
-      letter-spacing: -0.06em;
-    }
-
-    .hero p {
-      color: var(--muted);
-    }
-
-    .hero-grid {
-      display: grid;
-      gap: 12px;
-      align-content: end;
-    }
-
-    .hero-stat {
-      padding: 14px 16px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: var(--panel-soft);
-      backdrop-filter: blur(12px);
-    }
-
-    .hero-stat-label {
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-    }
-
-    .hero-stat-value {
       margin-top: 8px;
-      font-size: 19px;
-      font-weight: 700;
+      font-size: 22px;
+      line-height: 1.05;
       letter-spacing: -0.04em;
     }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(110, 231, 200, 0.18);
-      background: var(--accent-soft);
-      color: #d6fff5;
-      width: fit-content;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: currentColor;
-      box-shadow: 0 0 12px currentColor;
+    .hero p {
+      margin-top: 10px;
+      color: var(--muted);
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
+      gap: 0;
     }
 
     .section {
-      padding: 22px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
     }
 
     .section-header {
       display: grid;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 14px;
     }
 
     .section h2 {
-      font-size: 20px;
-      letter-spacing: -0.03em;
+      font-size: 14px;
+      letter-spacing: -0.01em;
     }
 
     .section p {
@@ -285,7 +196,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 
     .field-grid {
       display: grid;
-      gap: 14px;
+      gap: 12px;
     }
 
     label {
@@ -306,11 +217,11 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     textarea {
       width: 100%;
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 12px 14px;
+      border-radius: 9px;
+      padding: 9px 10px;
       font: inherit;
       color: var(--text);
-      background: rgba(8, 13, 21, 0.9);
+      background: var(--surface);
       transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
     }
 
@@ -319,23 +230,19 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     textarea:focus {
       outline: none;
       border-color: rgba(110, 231, 200, 0.44);
-      box-shadow: 0 0 0 4px rgba(110, 231, 200, 0.1);
-      transform: translateY(-1px);
+      box-shadow: 0 0 0 2px rgba(110, 231, 200, 0.1);
     }
 
     textarea {
-      min-height: 132px;
+      min-height: 108px;
       resize: vertical;
     }
 
     .inline {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: var(--panel-soft);
+      gap: 10px;
+      padding: 4px 0;
     }
 
     .inline input {
@@ -358,16 +265,15 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 
     .footer-bar {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 18px 22px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 18px 0 0;
     }
 
     .footer-copy {
       display: grid;
-      gap: 6px;
-      max-width: 560px;
+      gap: 5px;
     }
 
     .footer-copy p:last-child {
@@ -375,16 +281,15 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     }
 
     .actions {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
       gap: 8px;
     }
 
     button {
       appearance: none;
       border: 1px solid transparent;
-      border-radius: 14px;
-      padding: 12px 16px;
+      border-radius: 9px;
+      padding: 9px 11px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -392,7 +297,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       font: inherit;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+      transition: border-color 140ms ease, background 140ms ease;
     }
 
     button svg {
@@ -402,7 +307,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     }
 
     button:hover {
-      transform: translateY(-1px);
+      border-color: rgba(110, 231, 200, 0.28);
     }
 
     .primary {
@@ -411,9 +316,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     }
 
     .secondary {
-      background: var(--danger-soft);
-      border-color: rgba(248, 113, 113, 0.18);
-      color: #ffe1e1;
+      background: var(--surface-strong);
+      border-color: var(--line);
+      color: var(--text);
     }
 
     .helper {
@@ -421,32 +326,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       font-size: 12px;
     }
 
-    @media (max-width: 960px) {
-      .hero {
-        grid-template-columns: 1fr;
-      }
-    }
-
     @media (max-width: 820px) {
       body {
-        padding: 16px;
-      }
-
-      .grid {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-bar {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .actions {
-        width: 100%;
-      }
-
-      .actions button {
-        flex: 1 1 auto;
+        padding: 14px;
       }
     }
   </style>
@@ -454,32 +336,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 <body>
   <main class="shell">
     <section class="hero">
-      <div class="hero-copy">
-        <div>
-          <p class="eyebrow">Control Studio</p>
-          <h1>Generate Git Message</h1>
-        </div>
-        <p>一个更适合日常提交工作的控制台式设置面板。你可以在这里切换 provider、调整 prompt 模板、控制超时时间，并保持配置保存到合适的作用域。</p>
-        <div class="status-pill">
-          <span class="status-dot"></span>
-          <span>${state.common.debugLogging ? "Debug logging enabled" : "Debug logging disabled"}</span>
-        </div>
-      </div>
-
-      <div class="hero-grid">
-        <div class="hero-stat">
-          <div class="hero-stat-label">Active Provider</div>
-          <div class="hero-stat-value">${escapeHtml(state.provider)}</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-label">Timeout Window</div>
-          <div class="hero-stat-value">${state.common.timeoutMs} ms</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-label">Prompt Mode</div>
-          <div class="hero-stat-value">Shared Across Providers</div>
-        </div>
-      </div>
+      <p class="eyebrow">Settings</p>
+      <h1>Generate Git Message</h1>
+      <p>配置本地 provider、prompt 和运行参数。字段值直接显示在对应设置项里，保存时会保留原有作用域。</p>
     </section>
 
     <form id="settings-form">
@@ -523,7 +382,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         </div>
       </div>
 
-      <div class="grid" style="margin-top: 18px;">
+      <div class="grid">
         <div class="section">
           <div class="section-header">
             <h2>Codex Runtime</h2>
@@ -548,10 +407,6 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
                 ${renderReasoningEffortOption("xhigh", state.codex.reasoningEffort)}
               </select>
             </label>
-            <label>
-              <span>Command template</span>
-              <textarea name="commandTemplate">${escapeHtml(state.codex.commandTemplate)}</textarea>
-            </label>
           </div>
         </div>
 
@@ -565,15 +420,11 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
               <span>Claude path</span>
               <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
             </label>
-            <label>
-              <span>Claude command template</span>
-              <textarea name="claudeCommandTemplate">${escapeHtml(state.claude.claudeCommandTemplate)}</textarea>
-            </label>
           </div>
         </div>
       </div>
 
-      <div class="footer-bar" style="margin-top: 18px;">
+      <div class="footer-bar">
         <div class="footer-copy">
           <h3>Save Workspace Settings</h3>
           <p>保存时会尽量保留你原有的 workspace / global 作用域，不会强行改写配置位置。</p>
@@ -615,12 +466,10 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         codex: {
           codexPath: String(values.get('codexPath') || ''),
           model: String(values.get('model') || ''),
-          reasoningEffort: String(values.get('reasoningEffort') || 'medium'),
-          commandTemplate: String(values.get('commandTemplate') || '')
+          reasoningEffort: String(values.get('reasoningEffort') || 'medium')
         },
         claude: {
-          claudePath: String(values.get('claudePath') || ''),
-          claudeCommandTemplate: String(values.get('claudeCommandTemplate') || '')
+          claudePath: String(values.get('claudePath') || '')
         }
       };
 
@@ -662,10 +511,8 @@ function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage
     isString(value.codex.codexPath) &&
     isString(value.codex.model) &&
     isReasoningEffort(value.codex.reasoningEffort) &&
-    isString(value.codex.commandTemplate) &&
     isRecord(value.claude) &&
-    isString(value.claude.claudePath) &&
-    isString(value.claude.claudeCommandTemplate)
+    isString(value.claude.claudePath)
   );
 }
 

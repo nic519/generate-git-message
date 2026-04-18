@@ -33,12 +33,10 @@ export interface CodexOptions {
   codexPath: string;
   model: string;
   reasoningEffort: ReasoningEffort;
-  commandTemplate: string;
 }
 
 export interface ClaudeOptions {
   claudePath: string;
-  claudeCommandTemplate: string;
 }
 
 export interface ExtensionOptions {
@@ -66,15 +64,13 @@ export function resolveCodexProviderOptions(configuration: ConfigurationLike): C
   return {
     codexPath: configuration.get<string>("codexPath", "codex"),
     model: configuration.get<string>("model", ""),
-    reasoningEffort: isReasoningEffort(reasoningEffort) ? reasoningEffort : "medium",
-    commandTemplate: configuration.get<string>("commandTemplate", "")
+    reasoningEffort: isReasoningEffort(reasoningEffort) ? reasoningEffort : "medium"
   };
 }
 
 export function resolveClaudeOptions(configuration: ConfigurationLike): ClaudeOptions {
   return {
-    claudePath: configuration.get<string>("claudePath", "claude"),
-    claudeCommandTemplate: configuration.get<string>("claudeCommandTemplate", "")
+    claudePath: configuration.get<string>("claudePath", "claude")
   };
 }
 

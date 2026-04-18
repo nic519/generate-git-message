@@ -33,9 +33,7 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
       "generateGitMessage.codexPath": "/usr/local/bin/codex",
       "generateGitMessage.model": "gpt-5.4-mini",
       "generateGitMessage.reasoningEffort": "high",
-      "generateGitMessage.commandTemplate": "codex exec --input {{promptFile}}",
-      "generateGitMessage.claudePath": "/opt/homebrew/bin/claude",
-      "generateGitMessage.claudeCommandTemplate": "claude -p --output-format text --input {{promptFile}}"
+      "generateGitMessage.claudePath": "/opt/homebrew/bin/claude"
     })
   );
 
@@ -49,12 +47,10 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
     codex: {
       codexPath: "/usr/local/bin/codex",
       model: "gpt-5.4-mini",
-      reasoningEffort: "high",
-      commandTemplate: "codex exec --input {{promptFile}}"
+      reasoningEffort: "high"
     },
     claude: {
-      claudePath: "/opt/homebrew/bin/claude",
-      claudeCommandTemplate: "claude -p --output-format text --input {{promptFile}}"
+      claudePath: "/opt/homebrew/bin/claude"
     }
   });
 });
@@ -70,12 +66,10 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
     codex: {
       codexPath: "codex",
       model: "",
-      reasoningEffort: "medium",
-      commandTemplate: ""
+      reasoningEffort: "medium"
     },
     claude: {
-      claudePath: "claude",
-      claudeCommandTemplate: ""
+      claudePath: "claude"
     }
   });
 
@@ -87,9 +81,7 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
     { key: "codexPath", value: "codex" },
     { key: "model", value: "" },
     { key: "reasoningEffort", value: "medium" },
-    { key: "commandTemplate", value: "" },
-    { key: "claudePath", value: "claude" },
-    { key: "claudeCommandTemplate", value: "" }
+    { key: "claudePath", value: "claude" }
   ]);
 });
 
@@ -107,12 +99,10 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         codex: {
           codexPath: "codex",
           model: "",
-          reasoningEffort: "medium",
-          commandTemplate: ""
+          reasoningEffort: "medium"
         },
         claude: {
-          claudePath: "claude",
-          claudeCommandTemplate: ""
+          claudePath: "claude"
         }
       }
     }),
@@ -132,12 +122,10 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         codex: {
           codexPath: "codex",
           model: "",
-          reasoningEffort: "medium",
-          commandTemplate: ""
+          reasoningEffort: "medium"
         },
         claude: {
-          claudePath: "claude",
-          claudeCommandTemplate: ""
+          claudePath: "claude"
         }
       }
     }),
@@ -157,12 +145,10 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
         codex: {
           codexPath: 123,
           model: "",
-          reasoningEffort: "super-high",
-          commandTemplate: ""
+          reasoningEffort: "super-high"
         },
         claude: {
-          claudePath: "claude",
-          claudeCommandTemplate: ""
+          claudePath: "claude"
         }
       }
     }),
@@ -184,12 +170,10 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
       codex: {
         codexPath: "/usr/local/bin/codex",
         model: "gpt-5.4-mini",
-        reasoningEffort: "low",
-        commandTemplate: "codex exec --input {{promptFile}}"
+        reasoningEffort: "low"
       },
       claude: {
-        claudePath: "/opt/homebrew/bin/claude",
-        claudeCommandTemplate: "claude -p --output-format text"
+        claudePath: "/opt/homebrew/bin/claude"
       }
     },
     (key, value, target) => {
@@ -197,7 +181,7 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
     }
   );
 
-  assert.equal(updates.length, 10);
+  assert.equal(updates.length, 8);
   assert.equal(updates.every((update) => update.target === "global"), true);
 });
 
@@ -215,12 +199,10 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
       codex: {
         codexPath: "/usr/local/bin/codex",
         model: "gpt-5.4-mini",
-        reasoningEffort: "low",
-        commandTemplate: "codex exec --input {{promptFile}}"
+        reasoningEffort: "low"
       },
       claude: {
-        claudePath: "/opt/homebrew/bin/claude",
-        claudeCommandTemplate: "claude -p --output-format text"
+        claudePath: "/opt/homebrew/bin/claude"
       }
     },
     (key, value, target) => {
@@ -229,7 +211,7 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
     (key) => (key === "timeoutMs" ? "workspace" : "global")
   );
 
-  assert.equal(updates.length, 10);
+  assert.equal(updates.length, 8);
   assert.equal(updates.find((update) => update.key === "timeoutMs")?.target, "workspace");
   assert.equal(updates.filter((update) => update.key !== "timeoutMs").every((update) => update.target === "global"), true);
 });
@@ -270,12 +252,10 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
       codex: {
         codexPath: `codex&"<'`,
         model: `<model>`,
-        reasoningEffort: "medium",
-        commandTemplate: `run <{{promptFile}}> & ok`
+        reasoningEffort: "medium"
       },
       claude: {
-        claudePath: `claude<'">`,
-        claudeCommandTemplate: `claude --input <file>`
+        claudePath: `claude<'">`
       }
     }
   );
@@ -287,7 +267,7 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
   assert.match(html, /vscode-resource:/);
 });
 
-test("buildSettingsPanelHtml renders the redesigned studio layout", () => {
+test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   const html = buildSettingsPanelHtml(
     { cspSource: "vscode-resource:" },
     {
@@ -300,17 +280,15 @@ test("buildSettingsPanelHtml renders the redesigned studio layout", () => {
       codex: {
         codexPath: "codex",
         model: "gpt-5.4-mini",
-        reasoningEffort: "medium",
-        commandTemplate: ""
+        reasoningEffort: "medium"
       },
       claude: {
-        claudePath: "claude",
-        claudeCommandTemplate: ""
+        claudePath: "claude"
       }
     }
   );
 
-  assert.match(html, /Control Studio/);
+  assert.match(html, /Settings/);
   assert.match(html, /Provider Runtime/);
   assert.match(html, /Prompt System/);
   assert.match(html, /Save Workspace Settings/);
@@ -318,7 +296,10 @@ test("buildSettingsPanelHtml renders the redesigned studio layout", () => {
   assert.match(html, /M11\.017 2\.814/);
   assert.match(html, /M20 2v4/);
   assert.match(html, /circle cx="4" cy="20" r="2"/);
-  assert.match(html, /status-pill/);
+  assert.doesNotMatch(html, /Active Provider/);
+  assert.doesNotMatch(html, /Timeout Window/);
+  assert.doesNotMatch(html, /Prompt Mode/);
+  assert.doesNotMatch(html, /hero-stat/);
 });
 
 test("getSettingsPanelSaveTarget falls back to global when inspect reports no workspace value", () => {

@@ -2,9 +2,11 @@ import * as vscode from "vscode";
 
 import { resolveExtensionOptions } from "./config";
 import { getProviderDebugLines } from "./debugLog";
+import { createGenerateMessageProgressOptions } from "./extensionProgress";
 import { getGitApi, pickRepository } from "./git";
 import { getRepositoryDiff } from "./repositoryDiff";
 import { generateMessage, getProviderDisplayName } from "./providers";
+import { MessageGenerationCanceledError } from "./messageGenerator";
 import {
   applySettingsPanelSaveMessage,
   buildSettingsPanelHtml,
@@ -57,12 +59,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
     try {
       const result = await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Generating commit message with ${providerName}`,
-          cancellable: false
-        },
-        async () => generateMessage(options, repositoryDiff.diff)
+        createGenerateMessageProgressOptions(vscode.ProgressLocation.Notification, providerName),
+        async (_progress, token) => generateMessage(options, repositoryDiff.diff, token)
       );
 
       if (options.common.debugLogging) {
@@ -71,6 +69,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
       applyCommitMessage(repository, result.message);
     } catch (error) {
+      if (error instanceof MessageGenerationCanceledError) {
+        return;
+      }
+
       if (options.common.debugLogging) {
         outputChannel.appendLine(`[${new Date().toISOString()}] ${providerName} Commit failed`);
         outputChannel.appendLine(`  reason: ${error instanceof Error ? error.message : String(error)}`);

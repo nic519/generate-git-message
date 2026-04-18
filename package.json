@@ -103,20 +103,10 @@
           "default": false,
           "description": "Write provider diagnostics to the 'Generate Git Message' output channel."
         },
-        "generateGitMessage.commandTemplate": {
-          "type": "string",
-          "default": "",
-          "description": "Optional full command template. Use {{promptFile}} to reference the temporary prompt file."
-        },
         "generateGitMessage.claudePath": {
           "type": "string",
           "default": "claude",
           "description": "Path to the local Claude CLI executable."
-        },
-        "generateGitMessage.claudeCommandTemplate": {
-          "type": "string",
-          "default": "",
-          "description": "Optional Claude command template. Use {{promptFile}} to reference the temporary prompt file."
         },
         "generateGitMessage.promptTemplate": {
           "type": "string",

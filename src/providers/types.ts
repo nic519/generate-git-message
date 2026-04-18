@@ -21,3 +21,8 @@ export interface GeneratedMessageResult {
   message: string;
   debug: GeneratedMessageDebug;
 }
+
+export interface CancellationToken {
+  readonly isCancellationRequested: boolean;
+  onCancellationRequested(listener: () => void): { dispose(): void };
+}

@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { type BuiltCommand, type ExecutionContext, type GeneratedMessageResult } from "./providers/types";
+import { type BuiltCommand, type CancellationToken, type ExecutionContext, type GeneratedMessageResult } from "./providers/types";
 
 export interface ExecutionErrorMessages {
   emptyMessage: string;
@@ -20,11 +20,19 @@ export class MessageGenerationError extends Error {
   }
 }
 
+export class MessageGenerationCanceledError extends Error {
+  constructor() {
+    super("Commit message generation canceled.");
+    this.name = "MessageGenerationCanceledError";
+  }
+}
+
 export async function generateMessage(
   prompt: string,
   timeoutMs: number,
   buildCommand: (context: ExecutionContext) => BuiltCommand,
-  errorMessages: ExecutionErrorMessages
+  errorMessages: ExecutionErrorMessages,
+  cancellationToken?: CancellationToken
 ): Promise<GeneratedMessageResult> {
   const tempDirectory = await mkdtemp(join(tmpdir(), "generate-git-message-"));
   const promptFile = join(tempDirectory, "prompt.txt");
@@ -39,7 +47,7 @@ export async function generateMessage(
     }
 
     const startedAt = Date.now();
-    const { stdout, stderr } = await runCommand(command, args, stdin, timeoutMs);
+    const { stdout, stderr } = await runCommand(command, args, stdin, timeoutMs, cancellationToken);
     const durationMs = Date.now() - startedAt;
 
     const outputFileContent = await readOutputFile(outputFile);
@@ -128,7 +136,8 @@ async function runCommand(
   command: string,
   args: string[],
   stdin: string | undefined,
-  timeoutMs: number
+  timeoutMs: number,
+  cancellationToken?: CancellationToken
 ): Promise<{ stdout: string; stderr: string }> {
   return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -138,18 +147,41 @@ async function runCommand(
     let stdout = "";
     let stderr = "";
     let finished = false;
+    let cancellationDisposable: { dispose(): void } | undefined;
 
-    const timeout = setTimeout(() => {
+    const finish = (callback: () => void) => {
       if (finished) {
         return;
       }
 
       finished = true;
-      child.kill();
-      const error = new Error("Command timed out") as NodeJS.ErrnoException;
-      error.code = "ETIMEDOUT";
-      reject(error);
+      clearTimeout(timeout);
+      cancellationDisposable?.dispose();
+      callback();
+    };
+
+    const timeout = setTimeout(() => {
+      finish(() => {
+        child.kill();
+        const error = new Error("Command timed out") as NodeJS.ErrnoException;
+        error.code = "ETIMEDOUT";
+        reject(error);
+      });
     }, timeoutMs);
+
+    const cancel = () => {
+      finish(() => {
+        child.kill();
+        reject(new MessageGenerationCanceledError());
+      });
+    };
+
+    if (cancellationToken?.isCancellationRequested) {
+      cancel();
+      return;
+    }
+
+    cancellationDisposable = cancellationToken?.onCancellationRequested(cancel);
 
     child.stdout.setEncoding("utf8");
     child.stdout.on("data", (chunk: string) => {
@@ -162,29 +194,18 @@ async function runCommand(
     });
 
     child.on("error", (error) => {
-      if (finished) {
-        return;
-      }
-
-      finished = true;
-      clearTimeout(timeout);
-      reject(error);
+      finish(() => reject(error));
     });
 
     child.on("close", (code) => {
-      if (finished) {
-        return;
-      }
+      finish(() => {
+        if (code === 0) {
+          resolve({ stdout, stderr });
+          return;
+        }
 
-      finished = true;
-      clearTimeout(timeout);
-
-      if (code === 0) {
-        resolve({ stdout, stderr });
-        return;
-      }
-
-      reject(new Error(stderr.trim() || `Command exited with code ${code ?? "unknown"}.`));
+        reject(new Error(stderr.trim() || `Command exited with code ${code ?? "unknown"}.`));
+      });
     });
 
     if (stdin !== undefined) {
@@ -207,6 +228,10 @@ async function readOutputFile(path: string): Promise<string> {
 }
 
 function toExecutionError(error: unknown, errorMessages: ExecutionErrorMessages): MessageGenerationError {
+  if (error instanceof MessageGenerationCanceledError) {
+    return error;
+  }
+
   if (error instanceof MessageGenerationError) {
     return error;
   }
