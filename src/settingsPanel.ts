@@ -407,49 +407,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       </div>
 
       <div class="grid">
-        <div class="section">
-          <div class="section-header">
-            <h2>Codex Runtime</h2>
-            <p>Configure the local Codex executable, model override, and reasoning effort.</p>
-          </div>
-          <div class="field-grid">
-            <label>
-              <span>Codex path</span>
-              <input name="codexPath" type="text" value="${escapeHtml(state.codex.codexPath)}" />
-            </label>
-            <label>
-              <span>Model</span>
-              <input name="model" type="text" value="${escapeHtml(state.codex.model)}" />
-            </label>
-            <label>
-              <span>Reasoning effort</span>
-              <select name="reasoningEffort">
-                ${renderReasoningEffortOption("none", state.codex.reasoningEffort)}
-                ${renderReasoningEffortOption("low", state.codex.reasoningEffort)}
-                ${renderReasoningEffortOption("medium", state.codex.reasoningEffort)}
-                ${renderReasoningEffortOption("high", state.codex.reasoningEffort)}
-                ${renderReasoningEffortOption("xhigh", state.codex.reasoningEffort)}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-header">
-            <h2>Claude Runtime</h2>
-            <p>Configure the local Claude executable used when Claude is selected as the provider.</p>
-          </div>
-          <div class="field-grid">
-            <label>
-              <span>Claude path</span>
-              <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
-            </label>
-            <label>
-              <span>Claude model</span>
-              <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
-            </label>
-          </div>
-        </div>
+        ${renderActiveRuntimeSection(state)}
       </div>
 
       <div class="footer-bar">
@@ -545,6 +503,56 @@ function renderOutputLanguageOption(value: OutputLanguage, selectedValue: Output
   };
 
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${labels[value]}</option>`;
+}
+
+function renderActiveRuntimeSection(state: SettingsPanelState): string {
+  if (state.provider === "claude") {
+    return /* html */ `
+        <div class="section">
+          <div class="section-header">
+            <h2>Claude Runtime</h2>
+            <p>Configure the local Claude executable used when Claude is selected as the provider.</p>
+          </div>
+          <div class="field-grid">
+            <label>
+              <span>Claude path</span>
+              <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
+            </label>
+            <label>
+              <span>Claude model</span>
+              <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
+            </label>
+          </div>
+        </div>`;
+  }
+
+  return /* html */ `
+        <div class="section">
+          <div class="section-header">
+            <h2>Codex Runtime</h2>
+            <p>Configure the local Codex executable, model override, and reasoning effort.</p>
+          </div>
+          <div class="field-grid">
+            <label>
+              <span>Codex path</span>
+              <input name="codexPath" type="text" value="${escapeHtml(state.codex.codexPath)}" />
+            </label>
+            <label>
+              <span>Model</span>
+              <input name="model" type="text" value="${escapeHtml(state.codex.model)}" />
+            </label>
+            <label>
+              <span>Reasoning effort</span>
+              <select name="reasoningEffort">
+                ${renderReasoningEffortOption("none", state.codex.reasoningEffort)}
+                ${renderReasoningEffortOption("low", state.codex.reasoningEffort)}
+                ${renderReasoningEffortOption("medium", state.codex.reasoningEffort)}
+                ${renderReasoningEffortOption("high", state.codex.reasoningEffort)}
+                ${renderReasoningEffortOption("xhigh", state.codex.reasoningEffort)}
+              </select>
+            </label>
+          </div>
+        </div>`;
 }
 
 function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage {

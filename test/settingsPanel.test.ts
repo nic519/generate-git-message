@@ -302,8 +302,6 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
   assert.match(html, /Prompt &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
   assert.match(html, /codex&amp;&quot;&lt;&#39;/);
   assert.match(html, /&lt;model&gt;/);
-  assert.match(html, /claude&lt;&#39;&quot;&gt;/);
-  assert.match(html, /claude&lt;model&gt;/);
   assert.match(html, /vscode-resource:/);
 });
 
@@ -339,8 +337,10 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /<option value="ja">Japanese<\/option>/);
   assert.match(html, /Prompt System/);
   assert.match(html, /min-height: 220px/);
-  assert.match(html, /Claude model/);
-  assert.match(html, /claude-haiku-4-5-20251001/);
+  assert.match(html, /Codex Runtime/);
+  assert.match(html, /gpt-5.4-mini/);
+  assert.doesNotMatch(html, /Claude Runtime/);
+  assert.doesNotMatch(html, /Claude model/);
   assert.match(html, /Changes save automatically/);
   assert.match(html, /form\.addEventListener\('input'/);
   assert.match(html, /form\.addEventListener\('change'/);
@@ -355,6 +355,37 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.doesNotMatch(html, /Prompt Mode/);
   assert.doesNotMatch(html, /hero-stat/);
   assert.doesNotMatch(html, /[\u4e00-\u9fff]/);
+});
+
+test("buildSettingsPanelHtml renders only Claude runtime when provider is claude", () => {
+  const html = buildSettingsPanelHtml(
+    { cspSource: "vscode-resource:" },
+    {
+      provider: "claude",
+      sharedPromptTemplate: "Prompt:\n{{diff}}",
+      common: {
+        timeoutMs: 20000,
+        debugLogging: true,
+        outputLanguage: "en"
+      },
+      codex: {
+        codexPath: "codex",
+        model: "gpt-5.4-mini",
+        reasoningEffort: "medium"
+      },
+      claude: {
+        claudePath: "claude",
+        claudeModel: "claude-haiku-4-5-20251001"
+      }
+    }
+  );
+
+  assert.match(html, /Claude Runtime/);
+  assert.match(html, /Claude model/);
+  assert.match(html, /claude-haiku-4-5-20251001/);
+  assert.doesNotMatch(html, /Codex Runtime/);
+  assert.doesNotMatch(html, /Codex path/);
+  assert.doesNotMatch(html, /Reasoning effort/);
 });
 
 test("getSettingsPanelSaveTarget falls back to global when inspect reports no workspace value", () => {
