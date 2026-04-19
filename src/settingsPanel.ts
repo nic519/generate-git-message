@@ -373,7 +373,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
                 <option value="claude"${state.provider === "claude" ? " selected" : ""}>claude</option>
               </select>
             </label>
-            <p class="helper">Available CLIs: Codex and Claude. Switch here to configure the one you want to use.</p>
+            <p class="helper">Available CLIs: Codex and Claude. </p>
             <label>
               <span>Output language</span>
               <select name="outputLanguage">
