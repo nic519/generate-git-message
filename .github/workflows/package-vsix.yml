@@ -1,0 +1,73 @@
+name: Package VSIX
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-vsix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check package version change
+        id: version_check
+        run: |
+          BEFORE_SHA="${{ github.event.before }}"
+          CURRENT_VERSION="$(node -p "require('./package.json').version")"
+
+          if [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git cat-file -e "${BEFORE_SHA}:package.json" 2>/dev/null; then
+            PREVIOUS_VERSION="$(git show "${BEFORE_SHA}:package.json" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+          else
+            PREVIOUS_VERSION=""
+          fi
+
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        if: steps.version_check.outputs.version_changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: npm ci
+
+      - name: Build extension
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: npm run build
+
+      - name: Package VSIX
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: npm run package:vsix
+
+      - name: Publish to Open VSX
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: npx ovsx publish ./*.vsix -p "${{ secrets.OVSX_TOKEN }}"
+
+      - name: Upload VSIX artifact
+        if: steps.version_check.outputs.version_changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-package
+          path: "*.vsix"
+          if-no-files-found: error
