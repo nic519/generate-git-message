@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
+  DEFAULT_PROMPT_TEMPLATE,
   resolveClaudeOptions,
   resolveCommonOptions,
   resolveCodexOptions,
@@ -26,9 +27,18 @@ test("resolveCommonOptions uses common defaults", () => {
   const options = resolveCommonOptions(makeConfiguration({}));
 
   assert.equal(options.debugLogging, false);
-  assert.match(options.promptTemplate, /Generate a concise git commit message/);
+  assert.match(options.promptTemplate, /Create a standardized git commit message/);
   assert.equal(options.outputLanguage, "en");
   assert.equal(options.timeoutMs, 50000);
+});
+
+test("default prompt template follows the conventional commit generation workflow", () => {
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /Conventional Commits/);
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /type/);
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /scope/);
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /BREAKING CHANGE/);
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /Return only the final commit message/);
+  assert.match(DEFAULT_PROMPT_TEMPLATE, /\{\{diff\}\}/);
 });
 
 test("resolveCodexOptions uses codex defaults", () => {
@@ -36,7 +46,7 @@ test("resolveCodexOptions uses codex defaults", () => {
 
   assert.equal(options.codexPath, "codex");
   assert.equal(options.model, "gpt-5.4-mini");
-  assert.equal(options.reasoningEffort, "medium");
+  assert.equal(options.reasoningEffort, "low");
 });
 
 test("resolveCodexOptions respects workspace overrides", () => {
@@ -70,7 +80,7 @@ test("resolveExtensionOptions defaults provider to codex", () => {
   assert.equal(options.common.debugLogging, false);
   assert.equal(options.common.timeoutMs, 50000);
   assert.equal(options.codex.codexPath, "codex");
-  assert.equal(options.codex.reasoningEffort, "medium");
+  assert.equal(options.codex.reasoningEffort, "low");
   assert.equal(options.claude.claudePath, "claude");
 });
 
@@ -155,10 +165,10 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.equal(properties["generateGitMessage.model"].default, "gpt-5.4-mini");
   assert.equal(properties["generateGitMessage.claudePath"].default, "claude");
   assert.equal(properties["generateGitMessage.claudeModel"].default, "claude-haiku-4-5-20251001");
-  assert.equal(properties["generateGitMessage.reasoningEffort"].default, "medium");
+  assert.equal(properties["generateGitMessage.reasoningEffort"].default, "low");
   assert.equal(properties["generateGitMessage.outputLanguage"].default, "en");
   assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "zh-Hant", "ja"]);
-  assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
+  assert.equal(properties["generateGitMessage.promptTemplate"].default, DEFAULT_PROMPT_TEMPLATE);
   assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 50000);
 

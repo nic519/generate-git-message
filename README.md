@@ -25,6 +25,12 @@ Zero additional cost. Zero complexity. Just works.
 
 You can also open the `Generate Git Message` activity bar icon to choose provider, model, output language, prompt, CLI paths, timeout, and debug logging.
 
+## Generation behavior
+
+The extension reads staged changes first. If nothing is staged, it falls back to the working tree diff and tells you before generating.
+
+The default prompt follows Conventional Commits: it asks the selected CLI to analyze the diff, choose an accurate type and optional scope, keep the description under 72 characters, add a body only when useful, and mark breaking changes with `!` or a `BREAKING CHANGE` footer.
+
 ## Settings
 
 Common settings:
@@ -40,7 +46,7 @@ CLI settings:
 
 - `generateGitMessage.codexPath`: defaults to `codex`.
 - `generateGitMessage.claudePath`: defaults to `claude`.
-- `generateGitMessage.timeoutMs`: defaults to `20000`.
+- `generateGitMessage.timeoutMs`: defaults to `50000`.
 
 ## Notes
 

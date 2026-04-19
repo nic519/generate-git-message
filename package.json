@@ -2,7 +2,7 @@
   "name": "git-message-ai-codex-claude",
   "displayName": "Git Message with Codex & Claude",
   "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "thinkernicholas",
   "icon": "media/marketplace-icon.png",
   "license": "MIT",
@@ -89,7 +89,7 @@
         },
         "generateGitMessage.reasoningEffort": {
           "type": "string",
-          "default": "medium",
+          "default": "low",
           "enum": [
             "none",
             "low",
@@ -133,7 +133,7 @@
         },
         "generateGitMessage.promptTemplate": {
           "type": "string",
-          "default": "Generate a concise git commit message from the following git diff.\nRequirements:\n- Return only the final commit message.\n- Do not explain the result.\n- Prefer Conventional Commits style when it fits the change.\n- Accurately summarize the main intent of the change.\n- If the change is ambiguous, choose the safest concise message.\n\n{{diff}}",
+          "default": "Create a standardized git commit message from the following git diff.\nFollow the Conventional Commits specification.\n\nWorkflow:\n1. Analyze the diff to identify the primary logical change.\n2. Choose the most accurate type: feat, fix, docs, style, refactor, perf, test, build, ci, chore, or revert.\n3. Infer an optional scope from the affected module, package, or file area. Omit the scope if no stable scope is clear.\n4. Write a present-tense, imperative description under 72 characters.\n5. Add a short body only when it materially explains the reason, impact, or risk.\n6. If the diff contains an API removal, incompatible behavior change, migration requirement, or other breaking change, mark the header with ! or add a BREAKING CHANGE footer.\n\nOutput rules:\n- Return only the final commit message.\n- Do not explain your analysis.\n- Prefer one logical change; if the diff mixes unrelated changes, summarize the dominant change without inventing details.\n- Never mention files that are not present in the diff.\n\nFormat:\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer]\n\nGit diff:\n{{diff}}",
           "description": "Prompt template shared by the selected provider. Use {{diff}} as the Git diff placeholder."
         },
         "generateGitMessage.timeoutMs": {
