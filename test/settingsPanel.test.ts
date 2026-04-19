@@ -115,6 +115,34 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
   ]);
 });
 
+test("mapSettingsPanelSaveMessageToUpdates normalizes blank CLI paths to defaults", () => {
+  const updates = mapSettingsPanelSaveMessageToUpdates({
+    provider: "codex",
+    commitTemplates: {
+      en: "Prompt EN:\n{{diff}}",
+      zh: "Prompt ZH:\n{{diff}}",
+      "zh-Hant": "Prompt ZH-Hant:\n{{diff}}"
+    },
+    common: {
+      timeoutMs: 20000,
+      debugLogging: false,
+      outputLanguage: "en"
+    },
+    codex: {
+      codexPath: "   ",
+      model: "",
+      reasoningEffort: "medium"
+    },
+    claude: {
+      claudePath: "",
+      claudeModel: "claude-haiku-4-5-20251001"
+    }
+  });
+
+  assert.equal(updates.find((update) => update.key === "codexPath")?.value, "codex");
+  assert.equal(updates.find((update) => update.key === "claudePath")?.value, "claude");
+});
+
 test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeout and string fields", () => {
   assert.equal(
     isSettingsPanelSaveMessage({
@@ -392,11 +420,17 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Codex Runtime/);
   assert.match(html, /gpt-5.4-mini/);
-  assert.doesNotMatch(html, /Claude Runtime/);
-  assert.doesNotMatch(html, /Claude model/);
+  assert.match(html, /data-provider-runtime="codex">[\s\S]*Codex Runtime/);
+  assert.match(html, /data-provider-runtime="claude" hidden>[\s\S]*Claude Runtime/);
+  assert.match(html, /Claude model/);
   assert.match(html, /Changes save automatically/);
+  assert.match(html, /id="save-status"/);
+  assert.match(html, /window\.addEventListener\('message'/);
+  assert.match(html, /settingsSaved/);
+  assert.match(html, /已保存/);
   assert.match(html, /form\.addEventListener\('input'/);
   assert.match(html, /form\.addEventListener\('change'/);
+  assert.match(html, /updateRuntimeVisibility/);
   assert.match(html, /Generate Message/);
   assert.match(html, /M11\.017 2\.814/);
   assert.match(html, /M20 2v4/);
@@ -441,9 +475,10 @@ test("buildSettingsPanelHtml renders only Claude runtime when provider is claude
   assert.match(html, /Claude model/);
   assert.match(html, /claude-haiku-4-5-20251001/);
   assert.match(html, /Available CLIs: Codex and Claude\./);
-  assert.doesNotMatch(html, /Codex Runtime/);
-  assert.doesNotMatch(html, /Codex path/);
-  assert.doesNotMatch(html, /Reasoning effort/);
+  assert.match(html, /data-provider-runtime="claude">[\s\S]*Claude Runtime/);
+  assert.match(html, /data-provider-runtime="codex" hidden>[\s\S]*Codex Runtime/);
+  assert.match(html, /Codex path/);
+  assert.match(html, /Reasoning effort/);
   assert.match(html, /data-commit-template-language="en">[\s\S]*English commit template/);
   assert.match(html, /data-commit-template-language="zh" hidden>[\s\S]*简体中文 commit template/);
   assert.match(html, /data-commit-template-language="zh-Hant" hidden>[\s\S]*繁體中文 commit template/);

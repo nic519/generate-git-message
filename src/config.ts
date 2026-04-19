@@ -64,6 +64,8 @@ export const DEFAULT_COMMIT_TEMPLATES = {
 export const REASONING_EFFORTS = ["none", "low", "medium", "high", "xhigh"] as const;
 export const PROVIDERS = ["codex", "claude"] as const;
 export const OUTPUT_LANGUAGES = ["en", "zh", "zh-Hant"] as const;
+export const DEFAULT_CODEX_PATH = "codex";
+export const DEFAULT_CLAUDE_PATH = "claude";
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 export type Provider = (typeof PROVIDERS)[number];
@@ -126,7 +128,7 @@ export function resolveCodexProviderOptions(configuration: ConfigurationLike): C
   const reasoningEffort = configuration.get<string>("reasoningEffort", "low");
 
   return {
-    codexPath: configuration.get<string>("codexPath", "codex"),
+    codexPath: resolveExecutablePath(configuration.get<string>("codexPath", DEFAULT_CODEX_PATH), DEFAULT_CODEX_PATH),
     model: configuration.get<string>("model", "gpt-5.4-mini"),
     reasoningEffort: isReasoningEffort(reasoningEffort) ? reasoningEffort : "medium"
   };
@@ -134,9 +136,15 @@ export function resolveCodexProviderOptions(configuration: ConfigurationLike): C
 
 export function resolveClaudeOptions(configuration: ConfigurationLike): ClaudeOptions {
   return {
-    claudePath: configuration.get<string>("claudePath", "claude"),
+    claudePath: resolveExecutablePath(configuration.get<string>("claudePath", DEFAULT_CLAUDE_PATH), DEFAULT_CLAUDE_PATH),
     claudeModel: configuration.get<string>("claudeModel", "claude-haiku-4-5-20251001")
   };
+}
+
+export function resolveExecutablePath(value: string, defaultValue: string): string {
+  // 空 CLI 路径应回到 manifest 默认值，而不是变成无效可执行文件。
+  const trimmedValue = value.trim();
+  return trimmedValue ? trimmedValue : defaultValue;
 }
 
 export function resolveExtensionOptions(configuration: ConfigurationLike): ExtensionOptions {

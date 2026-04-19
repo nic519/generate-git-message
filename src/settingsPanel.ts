@@ -1,8 +1,11 @@
 import {
+  DEFAULT_CLAUDE_PATH,
+  DEFAULT_CODEX_PATH,
   OUTPUT_LANGUAGES,
   PROVIDERS,
   REASONING_EFFORTS,
   resolveExtensionOptions,
+  resolveExecutablePath,
   type ConfigurationLike,
   type OutputLanguage,
   type ReasoningEffort
@@ -67,6 +70,7 @@ export function getSettingsPanelSaveTarget(
   configuration: ConfigurationLike,
   key: string
 ): SettingsPanelSaveTarget {
+  // 保留用户原有的设置作用域，避免侧边栏保存整张表单时把值迁移到全局配置。
   const inspected = configuration.inspect?.(key);
   if (inspected?.workspaceFolderValue !== undefined) {
     return "workspaceFolder";
@@ -80,6 +84,7 @@ export function getSettingsPanelSaveTarget(
 }
 
 export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveMessage): SettingsPanelUpdate[] {
+  // 空白可执行文件路径表示重置为默认 CLI 命令。
   return [
     { key: "provider", value: message.provider },
     { key: "commitTemplateEn", value: message.commitTemplates.en },
@@ -88,10 +93,10 @@ export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveM
     { key: "outputLanguage", value: message.common.outputLanguage },
     { key: "timeoutMs", value: message.common.timeoutMs },
     { key: "debugLogging", value: message.common.debugLogging },
-    { key: "codexPath", value: message.codex.codexPath },
+    { key: "codexPath", value: resolveExecutablePath(message.codex.codexPath, DEFAULT_CODEX_PATH) },
     { key: "model", value: message.codex.model },
     { key: "reasoningEffort", value: message.codex.reasoningEffort },
-    { key: "claudePath", value: message.claude.claudePath },
+    { key: "claudePath", value: resolveExecutablePath(message.claude.claudePath, DEFAULT_CLAUDE_PATH) },
     { key: "claudeModel", value: message.claude.claudeModel }
   ];
 }
@@ -344,6 +349,20 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       font-size: 12px;
     }
 
+    .save-status {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .save-status[data-state="saved"] {
+      color: var(--accent);
+    }
+
+    .save-status[data-state="error"] {
+      color: #fca5a5;
+    }
+
     @media (max-width: 820px) {
       body {
         padding: 14px;
@@ -413,6 +432,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 
       <div class="footer-bar">
         <p class="helper">Changes save automatically.</p>
+        <p class="save-status" id="save-status" role="status" aria-live="polite"></p>
         <div class="actions">
           <button class="secondary" id="generate-message-button" type="button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -434,7 +454,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     const form = document.getElementById('settings-form');
     const commitTemplateContainer = document.getElementById('commit-template-container');
     const outputLanguageSelect = form.querySelector('select[name="outputLanguage"]');
+    const providerSelect = form.querySelector('select[name="provider"]');
     const generateButton = document.getElementById('generate-message-button');
+    const saveStatus = document.getElementById('save-status');
     let saveTimer;
 
     const collectState = () => {
@@ -452,19 +474,20 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
           outputLanguage: String(values.get('outputLanguage') || state.common.outputLanguage)
         },
         codex: {
-          codexPath: String(values.get('codexPath') || ''),
-          model: String(values.get('model') || ''),
-          reasoningEffort: String(values.get('reasoningEffort') || 'medium')
+          codexPath: getStringValue(values, 'codexPath', state.codex.codexPath, 'codex'),
+          model: getStringValue(values, 'model', state.codex.model),
+          reasoningEffort: getStringValue(values, 'reasoningEffort', state.codex.reasoningEffort)
         },
         claude: {
-          claudePath: String(values.get('claudePath') || ''),
-          claudeModel: String(values.get('claudeModel') || '')
+          claudePath: getStringValue(values, 'claudePath', state.claude.claudePath, 'claude'),
+          claudeModel: getStringValue(values, 'claudeModel', state.claude.claudeModel)
         }
       };
     };
 
     const saveSettings = () => {
       window.clearTimeout(saveTimer);
+      updateSaveStatus('saving', '正在保存...');
       vscode.postMessage({ type: 'saveSettings', state: collectState() });
     };
 
@@ -478,6 +501,21 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       return textarea instanceof HTMLTextAreaElement ? textarea.value : '';
     };
 
+    const getStringValue = (values, name, fallback, defaultWhenBlank) => {
+      if (!values.has(name)) {
+        // 隐藏的 provider 区域仍代表已保存设置；字段不存在时保留旧值，
+        // 不能当成用户清空了输入。
+        return String(fallback || '');
+      }
+
+      const value = String(values.get(name) || '');
+      if (value.trim()) {
+        return value;
+      }
+
+      return defaultWhenBlank === undefined ? value : String(defaultWhenBlank);
+    };
+
     form.addEventListener('input', () => {
       scheduleSave();
     });
@@ -489,6 +527,10 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         updateTemplateVisibility(target.value);
       }
 
+      if (target instanceof HTMLSelectElement && target.name === 'provider') {
+        updateRuntimeVisibility(target.value);
+      }
+
       saveSettings();
     });
 
@@ -496,7 +538,25 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       vscode.postMessage({ type: 'generateMessage' });
     });
 
+    window.addEventListener('message', (event) => {
+      const message = event.data;
+
+      if (!message || typeof message !== 'object') {
+        return;
+      }
+
+      if (message.type === 'settingsSaved') {
+        updateSaveStatus('saved', '已保存');
+        return;
+      }
+
+      if (message.type === 'settingsSaveFailed') {
+        updateSaveStatus('error', String(message.message || '保存失败'));
+      }
+    });
+
     updateTemplateVisibility(String(outputLanguageSelect?.value || state.common.outputLanguage));
+    updateRuntimeVisibility(String(providerSelect?.value || state.provider));
 
     function getEventTarget(event) {
       return event && event.target ? event.target : undefined;
@@ -520,12 +580,34 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         field.hidden = field.dataset.commitTemplateLanguage !== currentLanguage;
       });
     }
+
+    function updateRuntimeVisibility(provider) {
+      const currentProvider = provider === 'claude' ? 'claude' : 'codex';
+      const fields = form.querySelectorAll('[data-provider-runtime]');
+      fields.forEach((field) => {
+        if (!(field instanceof HTMLElement)) {
+          return;
+        }
+
+        field.hidden = field.dataset.providerRuntime !== currentProvider;
+      });
+    }
+
+    function updateSaveStatus(state, text) {
+      if (!saveStatus) {
+        return;
+      }
+
+      saveStatus.dataset.state = state;
+      saveStatus.textContent = text;
+    }
   </script>
 </body>
 </html>`;
 }
 
 export function isSettingsPanelSaveMessage(message: unknown): message is { type: "saveSettings"; state: SettingsPanelSaveMessage } {
+  // 即使 HTML 由扩展生成，webview 消息也要按不可信输入校验。
   if (!isRecord(message) || message.type !== "saveSettings") {
     return false;
   }
@@ -593,28 +675,10 @@ function renderCommitTemplateFieldWithVisibility(
 }
 
 function renderActiveRuntimeSection(state: SettingsPanelState): string {
-  if (state.provider === "claude") {
-    return /* html */ `
-        <div class="section">
-          <div class="section-header">
-            <h2>Claude Runtime</h2>
-            <p>Configure the local Claude executable used when Claude is selected as the provider.</p>
-          </div>
-          <div class="field-grid">
-            <label>
-              <span>Claude path</span>
-              <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
-            </label>
-            <label>
-              <span>Claude model</span>
-              <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
-            </label>
-          </div>
-        </div>`;
-  }
-
+  // 两个 provider 区域都常驻 DOM。切换 provider 只改可见性，
+  // 输入过程中重建 webview 会丢焦点和未完成编辑。
   return /* html */ `
-        <div class="section">
+        <div class="section" data-provider-runtime="codex"${state.provider === "codex" ? "" : " hidden"}>
           <div class="section-header">
             <h2>Codex Runtime</h2>
             <p>Configure the local Codex executable, model override, and reasoning effort.</p>
@@ -637,6 +701,22 @@ function renderActiveRuntimeSection(state: SettingsPanelState): string {
                 ${renderReasoningEffortOption("high", state.codex.reasoningEffort)}
                 ${renderReasoningEffortOption("xhigh", state.codex.reasoningEffort)}
               </select>
+            </label>
+          </div>
+        </div>
+        <div class="section" data-provider-runtime="claude"${state.provider === "claude" ? "" : " hidden"}>
+          <div class="section-header">
+            <h2>Claude Runtime</h2>
+            <p>Configure the local Claude executable used when Claude is selected as the provider.</p>
+          </div>
+          <div class="field-grid">
+            <label>
+              <span>Claude path</span>
+              <input name="claudePath" type="text" value="${escapeHtml(state.claude.claudePath)}" />
+            </label>
+            <label>
+              <span>Claude model</span>
+              <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
             </label>
           </div>
         </div>`;
@@ -705,6 +785,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function serializeStateForScript(state: SettingsPanelState): string {
+  // 转义 '<'，避免用户可编辑的 prompt 模板跳出 script 标签。
   return JSON.stringify(state).replace(/</g, "\\u003c");
 }
 

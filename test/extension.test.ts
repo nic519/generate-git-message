@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { resolveExtensionOptions } from "../src/config";
 import { getProviderDebugLines, getRequestDebugLines } from "../src/debugLog";
@@ -84,4 +85,13 @@ test("sidebar skips configuration refresh while saving settings from the panel",
   assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, true), false);
   assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, false), true);
   assert.equal(shouldRefreshSidebarViewForConfigurationChange(false, false), false);
+});
+
+test("extension acknowledges panel auto-save without refreshing or showing a toast", () => {
+  const extensionSource = readFileSync("src/extension.ts", "utf8");
+
+  assert.doesNotMatch(extensionSource, /settings saved and refreshed/i);
+  assert.doesNotMatch(extensionSource, /saveSucceeded[\s\S]*refreshSidebarView\(\)/);
+  assert.doesNotMatch(extensionSource, /showInformationMessage\("Generate Git Message settings/);
+  assert.match(extensionSource, /postMessage\(\{\s*type: "settingsSaved"/);
 });

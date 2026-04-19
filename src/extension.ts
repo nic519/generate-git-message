@@ -23,6 +23,8 @@ export function activate(context: vscode.ExtensionContext): void {
   let isSavingSettingsPanel = false;
 
   const refreshSidebarView = () => {
+    // 只在初次渲染或外部配置变更时调用。面板自动保存后调用会替换 DOM，
+    // 让正在编辑的输入框丢失焦点。
     if (!sidebarView) {
       return;
     }
@@ -121,7 +123,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
         const configuration = vscode.workspace.getConfiguration("generateGitMessage");
         isSavingSettingsPanel = true;
-        let saveSucceeded = false;
         try {
           await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
             const configurationTarget =
@@ -137,15 +138,17 @@ export function activate(context: vscode.ExtensionContext): void {
               configurationTarget
             );
           }, (key) => getSettingsPanelSaveTarget(configuration, key));
-          saveSucceeded = true;
+          void sidebarView?.webview.postMessage({ type: "settingsSaved" });
+        } catch (error) {
+          void sidebarView?.webview.postMessage({
+            type: "settingsSaveFailed",
+            message: error instanceof Error ? error.message : "Settings save failed."
+          });
         } finally {
           isSavingSettingsPanel = false;
         }
-
-        if (saveSucceeded) {
-          refreshSidebarView();
-          void vscode.window.showInformationMessage("Generate Git Message settings saved and refreshed.");
-        }
+        // 面板自动保存后不要刷新或弹通知。重设 webview.html 会重建 DOM，
+        // 抢走用户正在编辑的输入焦点。
       });
 
       const disposeDisposable = sidebarView.onDidDispose(() => {

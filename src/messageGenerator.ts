@@ -35,6 +35,7 @@ export async function generateMessage(
   cancellationToken?: CancellationToken,
   workingDirectory?: string
 ): Promise<GeneratedMessageResult> {
+  // 提示词和输出文件放在隔离临时目录，避免生成器命令把内容留在用户仓库。
   const tempDirectory = await mkdtemp(join(tmpdir(), "generate-git-message-"));
   const promptFile = join(tempDirectory, "prompt.txt");
   const outputFile = join(tempDirectory, "last-message.txt");
@@ -142,6 +143,7 @@ async function runCommand(
   workingDirectory?: string
 ): Promise<{ stdout: string; stderr: string }> {
   return await new Promise((resolve, reject) => {
+    // 参数直接交给 spawn，不能走 shell；否则用户配置的可执行路径会带来命令注入风险。
     const child = spawn(command, args, {
       stdio: "pipe",
       cwd: workingDirectory

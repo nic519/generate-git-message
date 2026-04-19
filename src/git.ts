@@ -24,6 +24,7 @@ export async function pickRepository(repositories: Repository[]): Promise<Reposi
 }
 
 export async function getGitApi(): Promise<GitApi | undefined> {
+  // 懒激活内置 Git 扩展，保持本扩展只由命令或视图触发。
   const gitExtension = vscode.extensions.getExtension<{ getAPI(version: 1): GitApi }>("vscode.git");
   if (!gitExtension) {
     return undefined;

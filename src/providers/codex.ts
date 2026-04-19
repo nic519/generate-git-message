@@ -14,6 +14,7 @@ export function buildCodexCommand(
   if (workingDirectory) {
     args.push("-C", workingDirectory);
   }
+  // 优先让 Codex 把最终答案写入文件，避免从 stdout 解析进度输出。
   args.push("-o", outputFile);
   if (options.codex.model.trim()) {
     args.push("-m", options.codex.model.trim());

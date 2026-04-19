@@ -7,6 +7,8 @@ export interface RepositoryDiff {
 }
 
 export async function getRepositoryDiff(repository: Repository): Promise<RepositoryDiff> {
+  // 对齐 VS Code 提交流程：有暂存改动时以暂存区为准，
+  // 工作区 diff 只作为未暂存时的便利回退。
   const stagedDiff = await repository.diff(true);
   if (stagedDiff.trim()) {
     return {

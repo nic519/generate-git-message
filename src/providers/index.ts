@@ -61,6 +61,7 @@ export function buildCommitPrompt(template: string, diff: string, outputLanguage
     ? trimmedTemplate.replaceAll("{{diff}}", diff)
     : `${trimmedTemplate}\n\nGit diff:\n${diff}`;
 
+  // 生成器会在仓库根目录运行，因此提示词必须明确禁止读取差异之外的文件。
   return (
     `${prompt.trim()}\n\n` +
     "Use only the git diff included in this prompt. Do not inspect files or infer changes from the current directory.\n" +

@@ -108,8 +108,28 @@ test("resolveCodexOptions respects workspace overrides", () => {
   assert.equal(options.reasoningEffort, "low");
 });
 
+test("resolveCodexOptions falls back to the default executable when codexPath is blank", () => {
+  const options = resolveCodexOptions(
+    makeConfiguration({
+      "generateGitMessage.codexPath": "   "
+    })
+  );
+
+  assert.equal(options.codexPath, "codex");
+});
+
 test("resolveClaudeOptions uses claude defaults", () => {
   const options = resolveClaudeOptions(makeConfiguration({}));
+
+  assert.equal(options.claudePath, "claude");
+});
+
+test("resolveClaudeOptions falls back to the default executable when claudePath is blank", () => {
+  const options = resolveClaudeOptions(
+    makeConfiguration({
+      "generateGitMessage.claudePath": ""
+    })
+  );
 
   assert.equal(options.claudePath, "claude");
 });
