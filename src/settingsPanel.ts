@@ -48,6 +48,21 @@ export interface WebviewLike {
 
 export type SettingsPanelSaveTarget = "global" | "workspace" | "workspaceFolder";
 
+const SETTINGS_PANEL_KEYS = [
+  "provider",
+  "commitTemplateEn",
+  "commitTemplateZh",
+  "commitTemplateZhHant",
+  "outputLanguage",
+  "timeoutMs",
+  "debugLogging",
+  "codexPath",
+  "model",
+  "reasoningEffort",
+  "claudePath",
+  "claudeModel"
+] as const;
+
 export function getSettingsPanelState(configuration: ConfigurationLike): SettingsPanelState {
   const options = resolveExtensionOptions(configuration);
 
@@ -153,6 +168,15 @@ export async function applySettingsPanelUpdateMessage(
   getTarget: (key: string) => SettingsPanelSaveTarget = () => "global"
 ): Promise<void> {
   await updateSetting(message.update.key, message.update.value, getTarget(message.update.key));
+}
+
+export async function applySettingsPanelReset(
+  updateSetting: (key: string, value: unknown, target: SettingsPanelSaveTarget) => void | Promise<void>,
+  getTarget: (key: string) => SettingsPanelSaveTarget = () => "global"
+): Promise<void> {
+  for (const key of SETTINGS_PANEL_KEYS) {
+    await updateSetting(key, undefined, getTarget(key));
+  }
 }
 
 export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPanelState): string {
@@ -478,14 +502,14 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <p class="helper">Changes save automatically.</p>
         <p class="save-status" id="save-status" role="status" aria-live="polite"></p>
         <div class="actions">
-          <button class="secondary" id="generate-message-button" type="button">
+          <button class="secondary" id="reset-settings-button" type="button">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
-              <path d="M20 2v4"/>
-              <path d="M22 4h-4"/>
-              <circle cx="4" cy="20" r="2"/>
+              <path d="M3 12a9 9 0 0 1 15.55-6.16"/>
+              <path d="M18 3v6h-6"/>
+              <path d="M21 12a9 9 0 0 1-15.55 6.16"/>
+              <path d="M6 21v-6h6"/>
             </svg>
-            <span>Generate Message</span>
+            <span>Reset</span>
           </button>
         </div>
       </div>
@@ -499,7 +523,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     const commitTemplateContainer = document.getElementById('commit-template-container');
     const outputLanguageSelect = form.querySelector('select[name="outputLanguage"]');
     const providerSelect = form.querySelector('select[name="provider"]');
-    const generateButton = document.getElementById('generate-message-button');
+    const resetButton = document.getElementById('reset-settings-button');
     const saveStatus = document.getElementById('save-status');
     let saveTimer;
 
@@ -617,8 +641,11 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       saveTarget(target, true);
     });
 
-    generateButton.addEventListener('click', () => {
-      vscode.postMessage({ type: 'generateMessage' });
+    resetButton.addEventListener('click', () => {
+      window.clearTimeout(saveTimer);
+      pendingUpdate = undefined;
+      updateSaveStatus('saving', '正在重置...');
+      vscode.postMessage({ type: 'resetSettings' });
     });
 
     window.addEventListener('message', (event) => {

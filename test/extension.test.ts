@@ -90,3 +90,11 @@ test("extension acknowledges panel auto-save and refreshes only when the view be
   assert.match(extensionSource, /postMessage\(\{\s*type: "settingsSaved"/);
   assert.match(extensionSource, /onDidChangeVisibility/);
 });
+
+test("extension resets settings from the panel and refreshes the sidebar", () => {
+  const extensionSource = readFileSync("src/extension.ts", "utf8");
+
+  assert.match(extensionSource, /message\.type === "resetSettings"/);
+  assert.match(extensionSource, /applySettingsPanelReset/);
+  assert.match(extensionSource, /refreshSidebarView\(\)/);
+});

@@ -1,8 +1,13 @@
+.agents/**
+.github/**
+.trae/**
+.vscode/**
+docs/**
 src/**
 test/**
-docs/**
-.vscode/**
 dist/test/**
+node_modules/**
 tsconfig.json
 .gitignore
 package-lock.json
+*.vsix

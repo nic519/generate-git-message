@@ -256,6 +256,24 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   ]);
 });
 
+test("vscode package ignore excludes development-only directories and artifacts", () => {
+  const vscodeIgnore = readFileSync(".vscodeignore", "utf8");
+
+  for (const pattern of [
+    ".agents/**",
+    ".github/**",
+    ".trae/**",
+    ".vscode/**",
+    "docs/**",
+    "src/**",
+    "test/**",
+    "node_modules/**",
+    "*.vsix"
+  ]) {
+    assert.match(vscodeIgnore, new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  }
+});
+
 test("activity bar icon uses the git pull request artwork", () => {
   const svg = readFileSync("media/activity-bar.svg", "utf8");
 

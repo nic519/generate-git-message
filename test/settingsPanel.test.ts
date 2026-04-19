@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applySettingsPanelReset,
   applySettingsPanelSaveMessage,
   buildSettingsPanelHtml,
   getSettingsPanelState,
@@ -360,6 +361,32 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
   assert.equal(updates.filter((update) => update.key !== "timeoutMs").every((update) => update.target === "global"), true);
 });
 
+test("applySettingsPanelReset clears every settings panel key using its existing scope", async () => {
+  const updates: Array<{ key: string; value: unknown; target: string }> = [];
+
+  await applySettingsPanelReset(
+    async (key, value, target) => {
+      updates.push({ key, value, target });
+    },
+    (key) => key === "model" ? "workspace" : "global"
+  );
+
+  assert.deepEqual(updates, [
+    { key: "provider", value: undefined, target: "global" },
+    { key: "commitTemplateEn", value: undefined, target: "global" },
+    { key: "commitTemplateZh", value: undefined, target: "global" },
+    { key: "commitTemplateZhHant", value: undefined, target: "global" },
+    { key: "outputLanguage", value: undefined, target: "global" },
+    { key: "timeoutMs", value: undefined, target: "global" },
+    { key: "debugLogging", value: undefined, target: "global" },
+    { key: "codexPath", value: undefined, target: "global" },
+    { key: "model", value: undefined, target: "workspace" },
+    { key: "reasoningEffort", value: undefined, target: "global" },
+    { key: "claudePath", value: undefined, target: "global" },
+    { key: "claudeModel", value: undefined, target: "global" }
+  ]);
+});
+
 test("getSettingsPanelSaveTarget keeps workspace-scoped keys in workspace", () => {
   const configuration = {
     get<T>(_key: string, defaultValue?: T): T {
@@ -489,10 +516,13 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /form\.addEventListener\('input'/);
   assert.match(html, /form\.addEventListener\('change'/);
   assert.match(html, /updateRuntimeVisibility/);
-  assert.match(html, /Generate Message/);
-  assert.match(html, /M11\.017 2\.814/);
-  assert.match(html, /M20 2v4/);
-  assert.match(html, /circle cx="4" cy="20" r="2"/);
+  assert.match(html, /Reset/);
+  assert.match(html, /resetSettings/);
+  assert.match(html, /M3 12a9 9 0 0 1 15\.55-6\.16/);
+  assert.match(html, /M18 3v6h-6/);
+  assert.match(html, /M6 21v-6h6/);
+  assert.doesNotMatch(html, /Generate Message/);
+  assert.doesNotMatch(html, /generateMessage/);
   assert.doesNotMatch(html, /Save Settings/);
   assert.doesNotMatch(html, /type="submit"/);
   assert.doesNotMatch(html, /Active Provider/);

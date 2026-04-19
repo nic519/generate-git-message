@@ -8,13 +8,14 @@ import { getRepositoryDiff } from "./repositoryDiff";
 import { generateMessage, getProviderDisplayName } from "./providers";
 import { MessageGenerationCanceledError } from "./messageGenerator";
 import {
+  applySettingsPanelReset,
   applySettingsPanelSaveMessage,
+  applySettingsPanelUpdateMessage,
   buildSettingsPanelHtml,
   getSettingsPanelState,
   getSettingsPanelSaveTarget,
   isSettingsPanelSaveMessage,
-  isSettingsPanelUpdateMessage,
-  applySettingsPanelUpdateMessage
+  isSettingsPanelUpdateMessage
 } from "./settingsPanel";
 import { applyCommitMessage } from "./writeMessage";
 
@@ -112,11 +113,6 @@ export function activate(context: vscode.ExtensionContext): void {
           return;
         }
 
-        if (message.type === "generateMessage") {
-          await vscode.commands.executeCommand("generateGitMessage.generateMessage");
-          return;
-        }
-
         const configuration = vscode.workspace.getConfiguration("generateGitMessage");
         try {
           const updateSetting = async (key: string, value: unknown, target: "global" | "workspace" | "workspaceFolder") => {
@@ -135,7 +131,10 @@ export function activate(context: vscode.ExtensionContext): void {
           };
           const getTarget = (key: string) => getSettingsPanelSaveTarget(configuration, key);
 
-          if (isSettingsPanelUpdateMessage(message)) {
+          if (message.type === "resetSettings") {
+            await applySettingsPanelReset(updateSetting, getTarget);
+            refreshSidebarView();
+          } else if (isSettingsPanelUpdateMessage(message)) {
             await applySettingsPanelUpdateMessage(message, updateSetting, getTarget);
           } else if (isSettingsPanelSaveMessage(message)) {
             await applySettingsPanelSaveMessage(message.state, updateSetting, getTarget);
