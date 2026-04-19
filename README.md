@@ -2,7 +2,7 @@
 
 Generate concise Git commit messages from your VS Code changes with your existing local Codex or Claude CLI, then write the result directly into VS Code's native Source Control input box.
 
-![](https://files.seeusercontent.com/2026/04/18/Prp3/fe1ccb0c-e6ca-4af5-9872-10809424.png)
+![](https://files.seeusercontent.com/2026/04/19/x5Mw/2.png)
 
 ## Why generate-git-message?
 
