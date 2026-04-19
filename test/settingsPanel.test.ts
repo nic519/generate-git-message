@@ -19,16 +19,28 @@ function makeConfiguration(values: Record<string, unknown>) {
       }
 
       return defaultValue as T;
+    },
+    inspect(key: string) {
+      const fullKey = `generateGitMessage.${key}`;
+      if (fullKey in values) {
+        return {
+          globalValue: values[fullKey]
+        };
+      }
+
+      return undefined;
     }
   };
 }
 
-test("getSettingsPanelState serializes provider shared prompt and all provider settings", () => {
+test("getSettingsPanelState serializes provider commit templates and all provider settings", () => {
   const state = getSettingsPanelState(
     makeConfiguration({
       "generateGitMessage.provider": "claude",
-      "generateGitMessage.promptTemplate": "Shared prompt:\n{{diff}}",
-      "generateGitMessage.outputLanguage": "ja",
+      "generateGitMessage.commitTemplateEn": "Shared prompt EN:\n{{diff}}",
+      "generateGitMessage.commitTemplateZh": "Shared prompt ZH:\n{{diff}}",
+      "generateGitMessage.commitTemplateZhHant": "Shared prompt ZH-Hant:\n{{diff}}",
+      "generateGitMessage.outputLanguage": "zh",
       "generateGitMessage.timeoutMs": 15000,
       "generateGitMessage.debugLogging": true,
       "generateGitMessage.codexPath": "/usr/local/bin/codex",
@@ -41,11 +53,15 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
 
   assert.deepEqual(state, {
     provider: "claude",
-    sharedPromptTemplate: "Shared prompt:\n{{diff}}",
+    commitTemplates: {
+      en: "Shared prompt EN:\n{{diff}}",
+      zh: "Shared prompt ZH:\n{{diff}}",
+      "zh-Hant": "Shared prompt ZH-Hant:\n{{diff}}"
+    },
     common: {
       timeoutMs: 15000,
       debugLogging: true,
-      outputLanguage: "ja"
+      outputLanguage: "zh"
     },
     codex: {
       codexPath: "/usr/local/bin/codex",
@@ -62,7 +78,11 @@ test("getSettingsPanelState serializes provider shared prompt and all provider s
 test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGitMessage settings keys", () => {
   const updates = mapSettingsPanelSaveMessageToUpdates({
     provider: "codex",
-    sharedPromptTemplate: "Prompt:\n{{diff}}",
+    commitTemplates: {
+      en: "Prompt EN:\n{{diff}}",
+      zh: "Prompt ZH:\n{{diff}}",
+      "zh-Hant": "Prompt ZH-Hant:\n{{diff}}"
+    },
     common: {
       timeoutMs: 20000,
       debugLogging: false,
@@ -81,7 +101,9 @@ test("mapSettingsPanelSaveMessageToUpdates maps panel state fields to generateGi
 
   assert.deepEqual(updates, [
     { key: "provider", value: "codex" },
-    { key: "promptTemplate", value: "Prompt:\n{{diff}}" },
+    { key: "commitTemplateEn", value: "Prompt EN:\n{{diff}}" },
+    { key: "commitTemplateZh", value: "Prompt ZH:\n{{diff}}" },
+    { key: "commitTemplateZhHant", value: "Prompt ZH-Hant:\n{{diff}}" },
     { key: "outputLanguage", value: "en" },
     { key: "timeoutMs", value: 20000 },
     { key: "debugLogging", value: false },
@@ -99,7 +121,11 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
       type: "saveSettings",
       state: {
         provider: "anthropic",
-        sharedPromptTemplate: "Prompt",
+        commitTemplates: {
+          en: "Prompt EN",
+          zh: "Prompt ZH",
+          "zh-Hant": "Prompt ZH-Hant"
+        },
         common: {
           timeoutMs: 20000,
           debugLogging: true,
@@ -124,7 +150,11 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
       type: "saveSettings",
       state: {
         provider: "codex",
-        sharedPromptTemplate: "Prompt",
+        commitTemplates: {
+          en: "Prompt EN",
+          zh: "Prompt ZH",
+          "zh-Hant": "Prompt ZH-Hant"
+        },
         common: {
           timeoutMs: Number.NaN,
           debugLogging: true,
@@ -149,7 +179,11 @@ test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeou
       type: "saveSettings",
       state: {
         provider: "codex",
-        sharedPromptTemplate: "Prompt",
+        commitTemplates: {
+          en: "Prompt EN",
+          zh: "Prompt ZH",
+          "zh-Hant": "Prompt ZH-Hant"
+        },
         common: {
           timeoutMs: 20000,
           debugLogging: true,
@@ -176,7 +210,11 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
   await applySettingsPanelSaveMessage(
     {
       provider: "claude",
-      sharedPromptTemplate: "Prompt",
+      commitTemplates: {
+        en: "Prompt EN",
+        zh: "Prompt ZH",
+        "zh-Hant": "Prompt ZH-Hant"
+      },
       common: {
         timeoutMs: 22000,
         debugLogging: false,
@@ -197,7 +235,7 @@ test("applySettingsPanelSaveMessage uses the global target by default", async ()
     }
   );
 
-  assert.equal(updates.length, 10);
+  assert.equal(updates.length, 12);
   assert.equal(updates.every((update) => update.target === "global"), true);
 });
 
@@ -207,7 +245,11 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
   await applySettingsPanelSaveMessage(
     {
       provider: "claude",
-      sharedPromptTemplate: "Prompt",
+      commitTemplates: {
+        en: "Prompt EN",
+        zh: "Prompt ZH",
+        "zh-Hant": "Prompt ZH-Hant"
+      },
       common: {
         timeoutMs: 22000,
         debugLogging: false,
@@ -229,7 +271,7 @@ test("applySettingsPanelSaveMessage uses the provided target resolver for each k
     (key) => (key === "timeoutMs" ? "workspace" : "global")
   );
 
-  assert.equal(updates.length, 10);
+  assert.equal(updates.length, 12);
   assert.equal(updates.find((update) => update.key === "timeoutMs")?.target, "workspace");
   assert.equal(updates.filter((update) => update.key !== "timeoutMs").every((update) => update.target === "global"), true);
 });
@@ -263,7 +305,7 @@ test("getSettingsPanelSaveTarget keeps workspace folder scoped keys in workspace
       return defaultValue as T;
     },
     inspect(key: string) {
-      if (key === "promptTemplate") {
+      if (key === "commitTemplateEn") {
         return {
           workspaceFolderValue: "Folder prompt:\n{{diff}}"
         };
@@ -273,7 +315,7 @@ test("getSettingsPanelSaveTarget keeps workspace folder scoped keys in workspace
     }
   };
 
-  assert.equal(getSettingsPanelSaveTarget(configuration, "promptTemplate"), "workspaceFolder");
+  assert.equal(getSettingsPanelSaveTarget(configuration, "commitTemplateEn"), "workspaceFolder");
 });
 
 test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
@@ -281,7 +323,11 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
     { cspSource: "vscode-resource:" },
     {
       provider: "codex",
-      sharedPromptTemplate: `Prompt <script>alert("x")</script>`,
+      commitTemplates: {
+        en: `Prompt EN <script>alert("x")</script>`,
+        zh: `Prompt ZH <script>alert("x")</script>`,
+        "zh-Hant": `Prompt ZH-Hant <script>alert("x")</script>`
+      },
       common: {
         timeoutMs: 20000,
         debugLogging: true,
@@ -299,7 +345,7 @@ test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
     }
   );
 
-  assert.match(html, /Prompt &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
+  assert.match(html, /Prompt EN &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt;/);
   assert.match(html, /codex&amp;&quot;&lt;&#39;/);
   assert.match(html, /&lt;model&gt;/);
   assert.match(html, /vscode-resource:/);
@@ -310,11 +356,15 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
     { cspSource: "vscode-resource:" },
     {
       provider: "codex",
-      sharedPromptTemplate: "Prompt:\n{{diff}}",
+      commitTemplates: {
+        en: "Prompt EN:\n{{diff}}",
+        zh: "Prompt ZH:\n{{diff}}",
+        "zh-Hant": "Prompt ZH-Hant:\n{{diff}}"
+      },
       common: {
         timeoutMs: 20000,
         debugLogging: true,
-        outputLanguage: "en"
+        outputLanguage: "zh"
       },
       codex: {
         codexPath: "codex",
@@ -331,11 +381,13 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /Settings/);
   assert.match(html, /Provider Runtime/);
   assert.match(html, /Output language/);
-  assert.match(html, /<option value="en" selected>English<\/option>/);
-  assert.match(html, /<option value="zh">Chinese \(Simplified\)<\/option>/);
+  assert.match(html, /<option value="zh" selected>Chinese \(Simplified\)<\/option>/);
+  assert.match(html, /<option value="en">English<\/option>/);
   assert.match(html, /<option value="zh-Hant">Chinese \(Traditional\)<\/option>/);
-  assert.match(html, /<option value="ja">Japanese<\/option>/);
-  assert.match(html, /Prompt System/);
+  assert.match(html, /Commit Templates/);
+  assert.match(html, /English commit template/);
+  assert.match(html, /简体中文 commit template/);
+  assert.match(html, /繁體中文 commit template/);
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Codex Runtime/);
   assert.match(html, /gpt-5.4-mini/);
@@ -354,7 +406,7 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.doesNotMatch(html, /Timeout Window/);
   assert.doesNotMatch(html, /Prompt Mode/);
   assert.doesNotMatch(html, /hero-stat/);
-  assert.doesNotMatch(html, /[\u4e00-\u9fff]/);
+  assert.doesNotMatch(html, /Japanese/);
 });
 
 test("buildSettingsPanelHtml renders only Claude runtime when provider is claude", () => {
@@ -362,7 +414,11 @@ test("buildSettingsPanelHtml renders only Claude runtime when provider is claude
     { cspSource: "vscode-resource:" },
     {
       provider: "claude",
-      sharedPromptTemplate: "Prompt:\n{{diff}}",
+      commitTemplates: {
+        en: "Prompt EN:\n{{diff}}",
+        zh: "Prompt ZH:\n{{diff}}",
+        "zh-Hant": "Prompt ZH-Hant:\n{{diff}}"
+      },
       common: {
         timeoutMs: 20000,
         debugLogging: true,

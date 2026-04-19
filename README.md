@@ -23,7 +23,7 @@ Zero additional cost. Zero complexity. Just works.
 4. Review or edit the generated message.
 5. Commit with VS Code as usual.
 
-You can also open the `Generate Git Message` activity bar icon to choose provider, model, output language, prompt, CLI paths, timeout, and debug logging.
+You can also open the `Generate Git Message` activity bar icon to choose provider, model, output language, commit templates, CLI paths, timeout, and debug logging.
 
 ## Generation behavior
 
@@ -38,8 +38,10 @@ Common settings:
 - `generateGitMessage.provider`: `codex` or `claude`.
 - `generateGitMessage.model`: Codex model.
 - `generateGitMessage.claudeModel`: Claude model.
-- `generateGitMessage.outputLanguage`: `en`, `zh`, `zh-Hant`, or `ja`.
-- `generateGitMessage.promptTemplate`: shared prompt template. Use `{{diff}}` where the Git diff should be inserted.
+- `generateGitMessage.outputLanguage`: `en`, `zh`, or `zh-Hant` (defaults to `zh`).
+- `generateGitMessage.commitTemplateEn`: English commit template. Use `{{diff}}` where the Git diff should be inserted.
+- `generateGitMessage.commitTemplateZh`: Simplified Chinese commit template. Use `{{diff}}` where the Git diff should be inserted.
+- `generateGitMessage.commitTemplateZhHant`: Traditional Chinese commit template. Use `{{diff}}` where the Git diff should be inserted.
 - `generateGitMessage.debugLogging`: writes diagnostics to the `Generate Git Message` output channel.
 
 CLI settings:

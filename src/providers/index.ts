@@ -14,7 +14,8 @@ export async function generateMessage(
   workingDirectory?: string,
   cancellationToken?: CancellationToken
 ): Promise<GeneratedMessageResult> {
-  const prompt = buildCommitPrompt(options.common.promptTemplate, diff, options.common.outputLanguage);
+  const promptTemplate = options.common.commitTemplates[options.common.outputLanguage];
+  const prompt = buildCommitPrompt(promptTemplate, diff, options.common.outputLanguage);
 
   switch (options.provider) {
     case "claude":
@@ -72,9 +73,8 @@ function resolvePromptLanguage(outputLanguage: string): string {
   const languageNames: Record<OutputLanguage, string> = {
     en: "English",
     zh: "Simplified Chinese",
-    "zh-Hant": "Traditional Chinese",
-    ja: "Japanese"
+    "zh-Hant": "Traditional Chinese"
   };
 
-  return languageNames[outputLanguage as OutputLanguage] ?? languageNames.en;
+  return languageNames[outputLanguage as OutputLanguage] ?? languageNames.zh;
 }

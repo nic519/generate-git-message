@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
-  DEFAULT_PROMPT_TEMPLATE,
+  DEFAULT_COMMIT_TEMPLATES,
   resolveClaudeOptions,
   resolveCommonOptions,
   resolveCodexOptions,
@@ -19,6 +19,16 @@ function makeConfiguration(values: Record<string, unknown>) {
       }
 
       return defaultValue as T;
+    },
+    inspect(key: string) {
+      const fullKey = `generateGitMessage.${key}`;
+      if (fullKey in values) {
+        return {
+          globalValue: values[fullKey]
+        };
+      }
+
+      return undefined;
     }
   };
 }
@@ -27,18 +37,47 @@ test("resolveCommonOptions uses common defaults", () => {
   const options = resolveCommonOptions(makeConfiguration({}));
 
   assert.equal(options.debugLogging, false);
-  assert.match(options.promptTemplate, /Create a standardized git commit message/);
-  assert.equal(options.outputLanguage, "en");
+  assert.equal(options.commitTemplates.en, DEFAULT_COMMIT_TEMPLATES.en);
+  assert.equal(options.commitTemplates.zh, DEFAULT_COMMIT_TEMPLATES.zh);
+  assert.equal(options.commitTemplates["zh-Hant"], DEFAULT_COMMIT_TEMPLATES["zh-Hant"]);
+  assert.equal(options.outputLanguage, "zh");
   assert.equal(options.timeoutMs, 50000);
 });
 
-test("default prompt template follows the conventional commit generation workflow", () => {
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /Conventional Commits/);
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /type/);
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /scope/);
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /BREAKING CHANGE/);
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /Return only the final commit message/);
-  assert.match(DEFAULT_PROMPT_TEMPLATE, /\{\{diff\}\}/);
+test("resolveCommonOptions falls back to the legacy shared prompt template when present", () => {
+  const options = resolveCommonOptions(
+    makeConfiguration({
+      "generateGitMessage.promptTemplate": "Legacy prompt:\n{{diff}}"
+    })
+  );
+
+  assert.equal(options.commitTemplates.en, "Legacy prompt:\n{{diff}}");
+  assert.equal(options.commitTemplates.zh, "Legacy prompt:\n{{diff}}");
+  assert.equal(options.commitTemplates["zh-Hant"], "Legacy prompt:\n{{diff}}");
+});
+
+test("resolveCommonOptions falls back to simplified Chinese for invalid output language values", () => {
+  const options = resolveCommonOptions(
+    makeConfiguration({
+      "generateGitMessage.outputLanguage": "ja"
+    })
+  );
+
+  assert.equal(options.outputLanguage, "zh");
+});
+
+test("default commit templates follow the conventional commit generation workflow", () => {
+  for (const template of Object.values(DEFAULT_COMMIT_TEMPLATES)) {
+    assert.match(template, /Conventional Commits/);
+    assert.match(template, /type/);
+    assert.match(template, /scope/);
+    assert.match(template, /BREAKING CHANGE/);
+    assert.match(template, /\{\{diff\}\}/);
+  }
+
+  assert.match(DEFAULT_COMMIT_TEMPLATES.en, /Return only the final commit message/);
+  assert.match(DEFAULT_COMMIT_TEMPLATES.zh, /只返回最终 commit message/);
+  assert.match(DEFAULT_COMMIT_TEMPLATES["zh-Hant"], /只回傳最終 commit message/);
 });
 
 test("resolveCodexOptions uses codex defaults", () => {
@@ -56,8 +95,10 @@ test("resolveCodexOptions respects workspace overrides", () => {
       "generateGitMessage.model": "gpt-5.4-mini",
       "generateGitMessage.reasoningEffort": "low",
       "generateGitMessage.debugLogging": true,
-      "generateGitMessage.outputLanguage": "ja",
-      "generateGitMessage.promptTemplate": "Commit:\n{{diff}}",
+      "generateGitMessage.outputLanguage": "zh-Hant",
+      "generateGitMessage.commitTemplateEn": "Commit EN:\n{{diff}}",
+      "generateGitMessage.commitTemplateZh": "Commit ZH:\n{{diff}}",
+      "generateGitMessage.commitTemplateZhHant": "Commit ZH-Hant:\n{{diff}}",
       "generateGitMessage.timeoutMs": 15000
     })
   );
@@ -78,7 +119,9 @@ test("resolveExtensionOptions defaults provider to codex", () => {
 
   assert.equal(options.provider, "codex");
   assert.equal(options.common.debugLogging, false);
+  assert.equal(options.common.outputLanguage, "zh");
   assert.equal(options.common.timeoutMs, 50000);
+  assert.equal(options.common.commitTemplates.en, DEFAULT_COMMIT_TEMPLATES.en);
   assert.equal(options.codex.codexPath, "codex");
   assert.equal(options.codex.reasoningEffort, "low");
   assert.equal(options.claude.claudePath, "claude");
@@ -113,7 +156,9 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
       "generateGitMessage.reasoningEffort": "high",
       "generateGitMessage.debugLogging": true,
       "generateGitMessage.outputLanguage": "zh",
-      "generateGitMessage.promptTemplate": "Commit:\n{{diff}}",
+      "generateGitMessage.commitTemplateEn": "Commit EN:\n{{diff}}",
+      "generateGitMessage.commitTemplateZh": "Commit ZH:\n{{diff}}",
+      "generateGitMessage.commitTemplateZhHant": "Commit ZH-Hant:\n{{diff}}",
       "generateGitMessage.timeoutMs": 15000,
       "generateGitMessage.claudePath": "/usr/local/bin/claude",
       "generateGitMessage.claudeModel": "claude-sonnet-4-6"
@@ -123,7 +168,9 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
   assert.equal(options.provider, "claude");
   assert.equal(options.common.debugLogging, true);
   assert.equal(options.common.outputLanguage, "zh");
-  assert.equal(options.common.promptTemplate, "Commit:\n{{diff}}");
+  assert.equal(options.common.commitTemplates.en, "Commit EN:\n{{diff}}");
+  assert.equal(options.common.commitTemplates.zh, "Commit ZH:\n{{diff}}");
+  assert.equal(options.common.commitTemplates["zh-Hant"], "Commit ZH-Hant:\n{{diff}}");
   assert.equal(options.common.timeoutMs, 15000);
   assert.equal(options.codex.codexPath, "/usr/local/bin/codex");
   assert.equal(options.codex.model, "gpt-5.4-mini");
@@ -166,10 +213,11 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.equal(properties["generateGitMessage.claudePath"].default, "claude");
   assert.equal(properties["generateGitMessage.claudeModel"].default, "claude-haiku-4-5-20251001");
   assert.equal(properties["generateGitMessage.reasoningEffort"].default, "low");
-  assert.equal(properties["generateGitMessage.outputLanguage"].default, "en");
-  assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "zh-Hant", "ja"]);
-  assert.equal(properties["generateGitMessage.promptTemplate"].default, DEFAULT_PROMPT_TEMPLATE);
-  assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
+  assert.equal(properties["generateGitMessage.outputLanguage"].default, "zh");
+  assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "zh-Hant"]);
+  assert.equal(properties["generateGitMessage.commitTemplateEn"].default, DEFAULT_COMMIT_TEMPLATES.en);
+  assert.equal(properties["generateGitMessage.commitTemplateZh"].default, DEFAULT_COMMIT_TEMPLATES.zh);
+  assert.equal(properties["generateGitMessage.commitTemplateZhHant"].default, DEFAULT_COMMIT_TEMPLATES["zh-Hant"]);
   assert.equal(properties["generateGitMessage.timeoutMs"].default, 50000);
 
   assert.deepEqual(contributes.viewsContainers?.activitybar, [

@@ -10,7 +10,7 @@ import {
 
 export interface SettingsPanelState {
   provider: "codex" | "claude";
-  sharedPromptTemplate: string;
+  commitTemplates: Record<OutputLanguage, string>;
   common: {
     timeoutMs: number;
     debugLogging: boolean;
@@ -45,7 +45,7 @@ export function getSettingsPanelState(configuration: ConfigurationLike): Setting
 
   return {
     provider: options.provider,
-    sharedPromptTemplate: options.common.promptTemplate,
+    commitTemplates: options.common.commitTemplates,
     common: {
       timeoutMs: options.common.timeoutMs,
       debugLogging: options.common.debugLogging,
@@ -82,7 +82,9 @@ export function getSettingsPanelSaveTarget(
 export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveMessage): SettingsPanelUpdate[] {
   return [
     { key: "provider", value: message.provider },
-    { key: "promptTemplate", value: message.sharedPromptTemplate },
+    { key: "commitTemplateEn", value: message.commitTemplates.en },
+    { key: "commitTemplateZh", value: message.commitTemplates.zh },
+    { key: "commitTemplateZhHant", value: message.commitTemplates["zh-Hant"] },
     { key: "outputLanguage", value: message.common.outputLanguage },
     { key: "timeoutMs", value: message.common.timeoutMs },
     { key: "debugLogging", value: message.common.debugLogging },
@@ -374,10 +376,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
             <label>
               <span>Output language</span>
               <select name="outputLanguage">
-                ${renderOutputLanguageOption("en", state.common.outputLanguage)}
                 ${renderOutputLanguageOption("zh", state.common.outputLanguage)}
+                ${renderOutputLanguageOption("en", state.common.outputLanguage)}
                 ${renderOutputLanguageOption("zh-Hant", state.common.outputLanguage)}
-                ${renderOutputLanguageOption("ja", state.common.outputLanguage)}
               </select>
             </label>
             <label>
@@ -393,14 +394,13 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 
         <div class="section">
           <div class="section-header">
-            <h2>Prompt System</h2>
-            <p>The shared prompt is used by both Codex and Claude to keep commit message output consistent.</p>
+            <h2>Commit Templates</h2>
+            <p>Edit the prompt for each output language so every commit message request matches the selected language.</p>
           </div>
           <div class="field-grid">
-            <label>
-              <span>Shared prompt template</span>
-              <textarea name="sharedPromptTemplate">${escapeHtml(state.sharedPromptTemplate)}</textarea>
-            </label>
+            ${renderCommitTemplateField("commitTemplateEn", "English commit template", state.commitTemplates.en)}
+            ${renderCommitTemplateField("commitTemplateZh", "简体中文 commit template", state.commitTemplates.zh)}
+            ${renderCommitTemplateField("commitTemplateZhHant", "繁體中文 commit template", state.commitTemplates["zh-Hant"])}
             <p class="helper">Use <code>{{diff}}</code> as the Git diff placeholder. Keep only the constraints that improve commit message quality.</p>
           </div>
         </div>
@@ -438,11 +438,15 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       const values = new FormData(form);
       return {
         provider: String(values.get('provider') || state.provider),
-        sharedPromptTemplate: String(values.get('sharedPromptTemplate') || ''),
+        commitTemplates: {
+          en: String(values.get('commitTemplateEn') || ''),
+          zh: String(values.get('commitTemplateZh') || ''),
+          "zh-Hant": String(values.get('commitTemplateZhHant') || '')
+        },
         common: {
           timeoutMs: Number(values.get('timeoutMs') || state.common.timeoutMs),
           debugLogging: values.get('debugLogging') === 'on',
-          outputLanguage: String(values.get('outputLanguage') || 'en')
+          outputLanguage: String(values.get('outputLanguage') || 'zh')
         },
         codex: {
           codexPath: String(values.get('codexPath') || ''),
@@ -496,13 +500,20 @@ function renderReasoningEffortOption(value: ReasoningEffort, selectedValue: Reas
 
 function renderOutputLanguageOption(value: OutputLanguage, selectedValue: OutputLanguage): string {
   const labels: Record<OutputLanguage, string> = {
-    en: "English",
     zh: "Chinese (Simplified)",
-    "zh-Hant": "Chinese (Traditional)",
-    ja: "Japanese"
+    en: "English",
+    "zh-Hant": "Chinese (Traditional)"
   };
 
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${labels[value]}</option>`;
+}
+
+function renderCommitTemplateField(name: string, label: string, value: string): string {
+  return /* html */ `
+            <label>
+              <span>${label}</span>
+              <textarea name="${name}">${escapeHtml(value)}</textarea>
+            </label>`;
 }
 
 function renderActiveRuntimeSection(state: SettingsPanelState): string {
@@ -562,7 +573,7 @@ function isSettingsPanelState(value: unknown): value is SettingsPanelSaveMessage
 
   return (
     isProvider(value.provider) &&
-    isString(value.sharedPromptTemplate) &&
+    isCommitTemplates(value.commitTemplates) &&
     isRecord(value.common) &&
     isFiniteNumberAtLeast(value.common.timeoutMs, 1000) &&
     isBoolean(value.common.debugLogging) &&
@@ -587,6 +598,18 @@ function isReasoningEffort(value: unknown): value is ReasoningEffort {
 
 function isOutputLanguage(value: unknown): value is OutputLanguage {
   return typeof value === "string" && OUTPUT_LANGUAGES.includes(value as OutputLanguage);
+}
+
+function isCommitTemplates(value: unknown): value is Record<OutputLanguage, string> {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isString(value.en) &&
+    isString(value.zh) &&
+    isString(value["zh-Hant"])
+  );
 }
 
 function isFiniteNumberAtLeast(value: unknown, minimum: number): value is number {

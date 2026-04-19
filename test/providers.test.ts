@@ -7,11 +7,11 @@ test("buildCommitPrompt appends the selected output language instruction", () =>
   const prompt = buildCommitPrompt(
     "Generate a commit message for:\n{{diff}}",
     "diff --git a/file b/file",
-    "ja"
+    "en"
   );
 
   assert.match(prompt, /diff --git a\/file b\/file/);
-  assert.match(prompt, /Write the final commit message in Japanese\./);
+  assert.match(prompt, /Write the final commit message in English\./);
   assert.match(prompt, /Return only the commit message/);
 });
 
@@ -34,8 +34,8 @@ test("buildCommitPrompt supports traditional Chinese output", () => {
   assert.match(prompt, /Write the final commit message in Traditional Chinese\./);
 });
 
-test("buildCommitPrompt defaults invalid output language values to English", () => {
+test("buildCommitPrompt defaults invalid output language values to simplified Chinese", () => {
   const prompt = buildCommitPrompt("Message:\n{{diff}}", "diff", "korean");
 
-  assert.match(prompt, /Write the final commit message in English\./);
+  assert.match(prompt, /Write the final commit message in Simplified Chinese\./);
 });
