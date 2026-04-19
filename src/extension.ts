@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 import { resolveExtensionOptions } from "./config";
-import { getProviderDebugLines } from "./debugLog";
+import { getRequestDebugLines } from "./debugLog";
 import { createGenerateMessageProgressOptions } from "./extensionProgress";
 import { getGitApi, pickRepository } from "./git";
 import { getRepositoryDiff } from "./repositoryDiff";
@@ -64,7 +64,13 @@ export function activate(context: vscode.ExtensionContext): void {
       );
 
       if (options.common.debugLogging) {
-        writeDebugLog(outputChannel, providerName, repositoryDiff.source, options, result.debug);
+        writeDebugLog(outputChannel, providerName, {
+          diffSource: repositoryDiff.source,
+          diffLength: repositoryDiff.diff.length,
+          repositoryRoot: repositoryDiff.rootPath,
+          options,
+          debug: result.debug
+        });
       }
 
       applyCommitMessage(repository, result.message);
@@ -75,6 +81,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
       if (options.common.debugLogging) {
         outputChannel.appendLine(`[${new Date().toISOString()}] ${providerName} Commit failed`);
+        outputChannel.appendLine(`  repositoryRoot: ${repositoryDiff.rootPath}`);
+        outputChannel.appendLine(`  cwd: ${repositoryDiff.rootPath}`);
+        outputChannel.appendLine(`  diffSource: ${repositoryDiff.source}`);
+        outputChannel.appendLine(`  diffLength: ${repositoryDiff.diff.length}`);
         outputChannel.appendLine(`  reason: ${error instanceof Error ? error.message : String(error)}`);
         outputChannel.show(true);
       }
@@ -148,26 +158,16 @@ export function deactivate(): void {}
 function writeDebugLog(
   outputChannel: vscode.OutputChannel,
   providerName: string,
-  diffSource: "staged" | "workingTree",
-  options: ReturnType<typeof resolveExtensionOptions>,
-  debug: {
-    command: string;
-    args: string[];
-    durationMs: number;
-    stderrSummary: string;
-  }
+  context: Parameters<typeof getRequestDebugLines>[0]
 ): void {
   outputChannel.appendLine(`[${new Date().toISOString()}] ${providerName} Commit request`);
-  outputChannel.appendLine(`  diffSource: ${diffSource}`);
-  for (const line of getProviderDebugLines(options)) {
+  for (const line of getRequestDebugLines(context)) {
     outputChannel.appendLine(line);
   }
-  outputChannel.appendLine(`  command: ${debug.command} ${debug.args.join(" ")}`);
-  outputChannel.appendLine(`  durationMs: ${debug.durationMs}`);
 
-  if (debug.stderrSummary) {
+  if (context.debug.stderrSummary) {
     outputChannel.appendLine("  stderr:");
-    for (const line of debug.stderrSummary.split("\n")) {
+    for (const line of context.debug.stderrSummary.split("\n")) {
       outputChannel.appendLine(`    ${line}`);
     }
   }

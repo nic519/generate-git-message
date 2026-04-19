@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { resolveExtensionOptions } from "../src/config";
-import { getProviderDebugLines } from "../src/debugLog";
+import { getProviderDebugLines, getRequestDebugLines } from "../src/debugLog";
 
 function makeConfiguration(values: Record<string, unknown>) {
   return {
@@ -42,4 +42,39 @@ test("getProviderDebugLines uses Claude fields for the claude provider", () => {
     "  claudePath: /usr/local/bin/claude",
     "  claudeModel: claude-haiku-4-5-20251001"
   ]);
+});
+
+test("getRequestDebugLines includes repository execution context", () => {
+  const options = resolveExtensionOptions(
+    makeConfiguration({
+      "generateGitMessage.provider": "codex",
+      "generateGitMessage.model": "gpt-5.4-mini",
+      "generateGitMessage.reasoningEffort": "low"
+    })
+  );
+
+  assert.deepEqual(
+    getRequestDebugLines({
+      diffSource: "staged",
+      diffLength: 1234,
+      repositoryRoot: "/tmp/current-repository",
+      options,
+      debug: {
+        command: "codex",
+        args: ["exec", "-C", "/tmp/current-repository", "-"],
+        durationMs: 987,
+        stderrSummary: ""
+      }
+    }),
+    [
+      "  repositoryRoot: /tmp/current-repository",
+      "  cwd: /tmp/current-repository",
+      "  diffSource: staged",
+      "  diffLength: 1234",
+      "  model: gpt-5.4-mini",
+      "  reasoningEffort: low",
+      "  command: codex exec -C /tmp/current-repository -",
+      "  durationMs: 987"
+    ]
+  );
 });

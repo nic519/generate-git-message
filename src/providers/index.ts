@@ -55,7 +55,10 @@ export async function generateMessage(
 
 export function buildCommitPrompt(template: string, diff: string, outputLanguage: string): string {
   const language = resolvePromptLanguage(outputLanguage);
-  const prompt = template.replace("{{diff}}", diff);
+  const trimmedTemplate = template.trim();
+  const prompt = trimmedTemplate.includes("{{diff}}")
+    ? trimmedTemplate.replaceAll("{{diff}}", diff)
+    : `${trimmedTemplate}\n\nGit diff:\n${diff}`;
 
   return (
     `${prompt.trim()}\n\n` +

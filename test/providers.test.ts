@@ -15,6 +15,19 @@ test("buildCommitPrompt appends the selected output language instruction", () =>
   assert.match(prompt, /Return only the commit message/);
 });
 
+test("buildCommitPrompt appends the diff when the template omits the placeholder", () => {
+  const prompt = buildCommitPrompt(
+    "Generate a commit message.",
+    "diff --git a/src/config/constants.ts b/src/config/constants.ts",
+    "zh"
+  );
+
+  assert.match(prompt, /Generate a commit message\./);
+  assert.match(prompt, /Git diff:\n/);
+  assert.match(prompt, /diff --git a\/src\/config\/constants\.ts b\/src\/config\/constants\.ts/);
+  assert.match(prompt, /Write the final commit message in Simplified Chinese\./);
+});
+
 test("buildCommitPrompt supports traditional Chinese output", () => {
   const prompt = buildCommitPrompt("Message:\n{{diff}}", "diff", "zh-Hant");
 
