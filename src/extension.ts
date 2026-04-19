@@ -121,19 +121,31 @@ export function activate(context: vscode.ExtensionContext): void {
 
         const configuration = vscode.workspace.getConfiguration("generateGitMessage");
         isSavingSettingsPanel = true;
+        let saveSucceeded = false;
         try {
           await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
+            const configurationTarget =
+              target === "workspaceFolder"
+                ? vscode.ConfigurationTarget.WorkspaceFolder
+                : target === "workspace"
+                  ? vscode.ConfigurationTarget.Workspace
+                  : vscode.ConfigurationTarget.Global;
+
             await configuration.update(
               key,
               value,
-              target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+              configurationTarget
             );
           }, (key) => getSettingsPanelSaveTarget(configuration, key));
+          saveSucceeded = true;
         } finally {
           isSavingSettingsPanel = false;
         }
 
-        void vscode.window.showInformationMessage("Generate Git Message settings saved.");
+        if (saveSucceeded) {
+          refreshSidebarView();
+          void vscode.window.showInformationMessage("Generate Git Message settings saved and refreshed.");
+        }
       });
 
       const disposeDisposable = sidebarView.onDidDispose(() => {

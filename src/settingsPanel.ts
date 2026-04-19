@@ -38,7 +38,7 @@ export interface WebviewLike {
   cspSource: string;
 }
 
-export type SettingsPanelSaveTarget = "global" | "workspace";
+export type SettingsPanelSaveTarget = "global" | "workspace" | "workspaceFolder";
 
 export function getSettingsPanelState(configuration: ConfigurationLike): SettingsPanelState {
   const options = resolveExtensionOptions(configuration);
@@ -68,7 +68,15 @@ export function getSettingsPanelSaveTarget(
   key: string
 ): SettingsPanelSaveTarget {
   const inspected = configuration.inspect?.(key);
-  return inspected?.workspaceValue !== undefined ? "workspace" : "global";
+  if (inspected?.workspaceFolderValue !== undefined) {
+    return "workspaceFolder";
+  }
+
+  if (inspected?.workspaceValue !== undefined) {
+    return "workspace";
+  }
+
+  return "global";
 }
 
 export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveMessage): SettingsPanelUpdate[] {

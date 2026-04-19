@@ -54,3 +54,9 @@ CLI settings:
 - Existing SCM input text is overwritten by the generated message.
 - Multi-repository workspaces are supported with a repository picker.
 - If the selected CLI is missing, times out, or returns empty output, the SCM input is left unchanged.
+
+## Publishing
+
+- `npm run package:vsix` builds a local VSIX file.
+- `npm run publish:vsce` publishes to the Visual Studio Marketplace.
+- `npm run publish:openvsx` publishes to Open VSX, which helps editors like Cursor and some other VS Code forks discover the extension.

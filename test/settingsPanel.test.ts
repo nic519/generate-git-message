@@ -257,6 +257,25 @@ test("getSettingsPanelSaveTarget keeps workspace-scoped keys in workspace", () =
   assert.equal(getSettingsPanelSaveTarget(configuration, "provider"), "global");
 });
 
+test("getSettingsPanelSaveTarget keeps workspace folder scoped keys in workspace folder", () => {
+  const configuration = {
+    get<T>(_key: string, defaultValue?: T): T {
+      return defaultValue as T;
+    },
+    inspect(key: string) {
+      if (key === "promptTemplate") {
+        return {
+          workspaceFolderValue: "Folder prompt:\n{{diff}}"
+        };
+      }
+
+      return undefined;
+    }
+  };
+
+  assert.equal(getSettingsPanelSaveTarget(configuration, "promptTemplate"), "workspaceFolder");
+});
+
 test("buildSettingsPanelHtml escapes user content in the rendered HTML", () => {
   const html = buildSettingsPanelHtml(
     { cspSource: "vscode-resource:" },

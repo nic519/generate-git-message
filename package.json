@@ -9,6 +9,14 @@
   "author": {
     "name": "nicholas"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nic519/generate-git-message.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nic519/generate-git-message/issues"
+  },
+  "homepage": "https://github.com/nic519/generate-git-message#readme",
   "keywords": [
     "git",
     "commit",
@@ -147,7 +155,10 @@
   },
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p .",
-    "test": "npm run build && node --test dist/test/*.test.js"
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "package:vsix": "vsce package",
+    "publish:vsce": "vsce publish",
+    "publish:openvsx": "npx ovsx publish"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
