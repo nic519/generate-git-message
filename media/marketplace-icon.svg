@@ -6,7 +6,6 @@
       <stop offset="1" stop-color="#a78bfa"/>
     </linearGradient>
   </defs>
-  <rect width="24" height="24" rx="4" fill="#070b16"/>
   <g stroke="url(#lineGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="18" cy="18" r="3"/>
     <circle cx="6" cy="6" r="3"/>

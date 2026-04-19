@@ -203,7 +203,7 @@ test("marketplace icon is a png generated from the git pull request artwork", ()
   const png = readFileSync("media/marketplace-icon.png");
 
   assert.match(svg, /viewBox="0 0 24 24"/);
-  assert.match(svg, /fill="#070b16"/);
+  assert.doesNotMatch(svg, /<rect\b/);
   assert.match(svg, /linearGradient id="lineGradient"/);
   assert.match(svg, /<circle cx="18" cy="18" r="3"\/>/);
   assert.match(svg, /<circle cx="6" cy="6" r="3"\/>/);
