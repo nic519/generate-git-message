@@ -2,7 +2,7 @@
   "name": "git-message-ai-codex-claude",
   "displayName": "Git Message with Codex & Claude",
   "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "thinkernicholas",
   "license": "MIT",
   "author": {
@@ -137,7 +137,7 @@
         },
         "generateGitMessage.timeoutMs": {
           "type": "number",
-          "default": 20000,
+          "default": 50000,
           "minimum": 1000,
           "description": "Timeout for the selected CLI command."
         }

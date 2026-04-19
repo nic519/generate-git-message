@@ -60,7 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       const result = await vscode.window.withProgress(
         createGenerateMessageProgressOptions(vscode.ProgressLocation.Notification, providerName),
-        async (_progress, token) => generateMessage(options, repositoryDiff.diff, token)
+        async (_progress, token) => generateMessage(options, repositoryDiff.diff, repositoryDiff.rootPath, token)
       );
 
       if (options.common.debugLogging) {

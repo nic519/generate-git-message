@@ -7,9 +7,14 @@ export function buildCodexCommand(
   },
   prompt: string,
   _promptFile: string,
-  outputFile: string
+  outputFile: string,
+  workingDirectory?: string
 ): BuiltCommand {
-  const args = ["exec", "--skip-git-repo-check", "-o", outputFile];
+  const args = ["exec", "--skip-git-repo-check", "--ephemeral"];
+  if (workingDirectory) {
+    args.push("-C", workingDirectory);
+  }
+  args.push("-o", outputFile);
   if (options.codex.model.trim()) {
     args.push("-m", options.codex.model.trim());
   }

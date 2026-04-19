@@ -28,7 +28,7 @@ test("resolveCommonOptions uses common defaults", () => {
   assert.equal(options.debugLogging, false);
   assert.match(options.promptTemplate, /Generate a concise git commit message/);
   assert.equal(options.outputLanguage, "en");
-  assert.equal(options.timeoutMs, 20000);
+  assert.equal(options.timeoutMs, 50000);
 });
 
 test("resolveCodexOptions uses codex defaults", () => {
@@ -68,7 +68,7 @@ test("resolveExtensionOptions defaults provider to codex", () => {
 
   assert.equal(options.provider, "codex");
   assert.equal(options.common.debugLogging, false);
-  assert.equal(options.common.timeoutMs, 20000);
+  assert.equal(options.common.timeoutMs, 50000);
   assert.equal(options.codex.codexPath, "codex");
   assert.equal(options.codex.reasoningEffort, "medium");
   assert.equal(options.claude.claudePath, "claude");
@@ -158,7 +158,7 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   assert.deepEqual(properties["generateGitMessage.outputLanguage"].enum, ["en", "zh", "zh-Hant", "ja"]);
   assert.match(String(properties["generateGitMessage.promptTemplate"].default), /git diff/);
   assert.doesNotMatch(String(properties["generateGitMessage.promptTemplate"].default), /\\n/);
-  assert.equal(properties["generateGitMessage.timeoutMs"].default, 20000);
+  assert.equal(properties["generateGitMessage.timeoutMs"].default, 50000);
 
   assert.deepEqual(contributes.viewsContainers?.activitybar, [
     {

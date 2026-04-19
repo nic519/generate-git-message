@@ -3,6 +3,7 @@ import { type Repository } from "./types/git";
 export interface RepositoryDiff {
   diff: string;
   source: "staged" | "workingTree";
+  rootPath: string;
 }
 
 export async function getRepositoryDiff(repository: Repository): Promise<RepositoryDiff> {
@@ -10,13 +11,15 @@ export async function getRepositoryDiff(repository: Repository): Promise<Reposit
   if (stagedDiff.trim()) {
     return {
       diff: stagedDiff,
-      source: "staged"
+      source: "staged",
+      rootPath: repository.rootUri.fsPath
     };
   }
 
   const workingTreeDiff = await repository.diff();
   return {
     diff: workingTreeDiff,
-    source: "workingTree"
+    source: "workingTree",
+    rootPath: repository.rootUri.fsPath
   };
 }

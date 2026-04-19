@@ -32,7 +32,8 @@ export async function generateMessage(
   timeoutMs: number,
   buildCommand: (context: ExecutionContext) => BuiltCommand,
   errorMessages: ExecutionErrorMessages,
-  cancellationToken?: CancellationToken
+  cancellationToken?: CancellationToken,
+  workingDirectory?: string
 ): Promise<GeneratedMessageResult> {
   const tempDirectory = await mkdtemp(join(tmpdir(), "generate-git-message-"));
   const promptFile = join(tempDirectory, "prompt.txt");
@@ -41,13 +42,13 @@ export async function generateMessage(
   try {
     await writeFile(promptFile, prompt, "utf8");
 
-    const { command, args, stdin } = buildCommand({ prompt, promptFile, outputFile });
+    const { command, args, stdin } = buildCommand({ prompt, promptFile, outputFile, workingDirectory });
     if (!command) {
       throw new MessageGenerationError(errorMessages.invalidCommand);
     }
 
     const startedAt = Date.now();
-    const { stdout, stderr } = await runCommand(command, args, stdin, timeoutMs, cancellationToken);
+    const { stdout, stderr } = await runCommand(command, args, stdin, timeoutMs, cancellationToken, workingDirectory);
     const durationMs = Date.now() - startedAt;
 
     const outputFileContent = await readOutputFile(outputFile);
@@ -137,11 +138,13 @@ async function runCommand(
   args: string[],
   stdin: string | undefined,
   timeoutMs: number,
-  cancellationToken?: CancellationToken
+  cancellationToken?: CancellationToken,
+  workingDirectory?: string
 ): Promise<{ stdout: string; stderr: string }> {
   return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      stdio: "pipe"
+      stdio: "pipe",
+      cwd: workingDirectory
     });
 
     let stdout = "";

@@ -8,6 +8,7 @@ export interface ExecutionContext {
   prompt: string;
   promptFile: string;
   outputFile: string;
+  workingDirectory?: string;
 }
 
 export interface GeneratedMessageDebug {

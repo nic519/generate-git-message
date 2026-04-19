@@ -60,7 +60,7 @@ export function resolveCommonOptions(configuration: ConfigurationLike): CommonOp
     debugLogging: configuration.get<boolean>("debugLogging", false),
     outputLanguage: resolveOutputLanguage(configuration.get<string>("outputLanguage", "en")),
     promptTemplate: configuration.get<string>("promptTemplate", DEFAULT_PROMPT_TEMPLATE),
-    timeoutMs: configuration.get<number>("timeoutMs", 20_000)
+    timeoutMs: configuration.get<number>("timeoutMs", 50_000)
   };
 }
 

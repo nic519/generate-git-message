@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   MessageGenerationCanceledError,
@@ -28,6 +31,7 @@ test("buildCodexCommand uses the default codex executable", () => {
   assert.deepEqual(command.args, [
     "exec",
     "--skip-git-repo-check",
+    "--ephemeral",
     "-o",
     "/tmp/codex-last-message.txt",
     "-c",
@@ -54,6 +58,7 @@ test("buildCodexCommand adds model and reasoning overrides when configured", () 
   assert.deepEqual(command.args, [
     "exec",
     "--skip-git-repo-check",
+    "--ephemeral",
     "-o",
     "/tmp/codex-last-message.txt",
     "-m",
@@ -63,6 +68,30 @@ test("buildCodexCommand adds model and reasoning overrides when configured", () 
     "-"
   ]);
   assert.equal(command.stdin, "Diff:\ndiff --git a/file b/file");
+});
+
+test("buildCodexCommand pins Codex to the repository working directory", () => {
+  const command = buildCodexCommand(
+    {
+      codex: {
+        codexPath: "codex",
+        model: "",
+        reasoningEffort: "medium"
+      }
+    },
+    "Diff:\ndiff --git a/file b/file",
+    "/tmp/codex-prompt.txt",
+    "/tmp/codex-last-message.txt",
+    "/tmp/current-repository"
+  );
+
+  assert.deepEqual(command.args.slice(0, 5), [
+    "exec",
+    "--skip-git-repo-check",
+    "--ephemeral",
+    "-C",
+    "/tmp/current-repository"
+  ]);
 });
 
 test("normalizeMessage trims surrounding whitespace", () => {
@@ -135,4 +164,33 @@ test("generateMessage rejects with a cancellation error when the token is cancel
   listener?.();
 
   await assert.rejects(generation, MessageGenerationCanceledError);
+});
+
+test("generateMessage runs the CLI in the provided working directory", async () => {
+  const workingDirectory = await realpath(await mkdtemp(join(tmpdir(), "generate-git-message-cwd-")));
+
+  try {
+    const result = await executeMessage(
+      "prompt",
+      5000,
+      () => ({
+        command: process.execPath,
+        args: ["-e", "console.log(process.cwd())"],
+        stdin: "prompt"
+      }),
+      {
+        emptyMessage: "empty",
+        missingCli: "missing",
+        invalidCommand: "invalid",
+        timeout: "timeout",
+        unexpected: "unexpected"
+      },
+      undefined,
+      workingDirectory
+    );
+
+    assert.equal(result.message, workingDirectory);
+  } finally {
+    await rm(workingDirectory, { recursive: true, force: true });
+  }
 });

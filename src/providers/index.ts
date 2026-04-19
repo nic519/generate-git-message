@@ -11,6 +11,7 @@ export function getProviderDisplayName(provider: Provider): string {
 export async function generateMessage(
   options: ExtensionOptions,
   diff: string,
+  workingDirectory?: string,
   cancellationToken?: CancellationToken
 ): Promise<GeneratedMessageResult> {
   const prompt = buildCommitPrompt(options.common.promptTemplate, diff, options.common.outputLanguage);
@@ -29,15 +30,16 @@ export async function generateMessage(
           timeout: "Claude CLI timed out before returning a commit message.",
           unexpected: "Claude CLI failed unexpectedly."
         },
-        cancellationToken
+        cancellationToken,
+        workingDirectory
       );
     case "codex":
     default:
       return await executeMessage(
         prompt,
         options.common.timeoutMs,
-        ({ prompt: promptText, promptFile, outputFile }) =>
-          buildCodexCommand({ codex: options.codex }, promptText, promptFile, outputFile),
+        ({ prompt: promptText, promptFile, outputFile, workingDirectory: cwd }) =>
+          buildCodexCommand({ codex: options.codex }, promptText, promptFile, outputFile, cwd),
         {
           emptyMessage: "Codex returned an empty commit message.",
           missingCli: "Could not find the Codex CLI. Check generateGitMessage.codexPath.",
@@ -45,7 +47,8 @@ export async function generateMessage(
           timeout: "Codex CLI timed out before returning a commit message.",
           unexpected: "Codex CLI failed unexpectedly."
         },
-        cancellationToken
+        cancellationToken,
+        workingDirectory
       );
   }
 }
@@ -56,6 +59,7 @@ export function buildCommitPrompt(template: string, diff: string, outputLanguage
 
   return (
     `${prompt.trim()}\n\n` +
+    "Use only the git diff included in this prompt. Do not inspect files or infer changes from the current directory.\n" +
     `Output language requirement: Write the final commit message in ${language}.\n` +
     "Return only the commit message, with no explanation, no markdown, and no surrounding quotes."
   );
