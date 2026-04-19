@@ -4,6 +4,7 @@
   "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
   "version": "0.0.5",
   "publisher": "thinkernicholas",
+  "icon": "media/marketplace-icon.png",
   "license": "MIT",
   "author": {
     "name": "nicholas"

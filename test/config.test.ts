@@ -124,6 +124,7 @@ test("resolveExtensionOptions reads grouped config and claude-specific config", 
 
 test("package manifest defaults stay aligned with resolver defaults", () => {
   const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+    icon: string;
     activationEvents: string[];
     contributes: {
       commands?: Array<{ command: string; title: string; category?: string }>;
@@ -139,6 +140,7 @@ test("package manifest defaults stay aligned with resolver defaults", () => {
   const contributes = packageJson.contributes;
   const properties = contributes.configuration.properties;
 
+  assert.equal(packageJson.icon, "media/marketplace-icon.png");
   assert.deepEqual(packageJson.activationEvents, ["onCommand:generateGitMessage.generateMessage", "onView:generateGitMessage.sidebar"]);
   assert.deepEqual(contributes.commands, [
     {
@@ -184,4 +186,18 @@ test("activity bar icon uses the git pull request artwork", () => {
   assert.match(svg, /<circle cx="6" cy="6" r="3"\/>/);
   assert.match(svg, /<path d="M13 6h3a2 2 0 0 1 2 2v7"\/>/);
   assert.match(svg, /<line x1="6" x2="6" y1="9" y2="21"\/>/);
+});
+
+test("marketplace icon is a png generated from the git pull request artwork", () => {
+  const svg = readFileSync("media/marketplace-icon.svg", "utf8");
+  const png = readFileSync("media/marketplace-icon.png");
+
+  assert.match(svg, /viewBox="0 0 24 24"/);
+  assert.match(svg, /fill="#070b16"/);
+  assert.match(svg, /linearGradient id="lineGradient"/);
+  assert.match(svg, /<circle cx="18" cy="18" r="3"\/>/);
+  assert.match(svg, /<circle cx="6" cy="6" r="3"\/>/);
+  assert.match(svg, /<path d="M13 6h3a2 2 0 0 1 2 2v7"\/>/);
+  assert.match(svg, /<line x1="6" x2="6" y1="9" y2="21"\/>/);
+  assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 });
