@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { resolveExtensionOptions } from "../src/config";
 import { getProviderDebugLines, getRequestDebugLines } from "../src/debugLog";
+import { shouldRefreshSidebarViewForConfigurationChange } from "../src/sidebarRefresh";
 
 function makeConfiguration(values: Record<string, unknown>) {
   return {
@@ -77,4 +78,10 @@ test("getRequestDebugLines includes repository execution context", () => {
       "  durationMs: 987"
     ]
   );
+});
+
+test("sidebar skips configuration refresh while saving settings from the panel", () => {
+  assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, true), false);
+  assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, false), true);
+  assert.equal(shouldRefreshSidebarViewForConfigurationChange(false, false), false);
 });

@@ -7,6 +7,7 @@ import { getGitApi, pickRepository } from "./git";
 import { getRepositoryDiff } from "./repositoryDiff";
 import { generateMessage, getProviderDisplayName } from "./providers";
 import { MessageGenerationCanceledError } from "./messageGenerator";
+import { shouldRefreshSidebarViewForConfigurationChange } from "./sidebarRefresh";
 import {
   applySettingsPanelSaveMessage,
   buildSettingsPanelHtml,
@@ -19,6 +20,7 @@ import { applyCommitMessage } from "./writeMessage";
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Generate Git Message");
   let sidebarView: vscode.WebviewView | undefined;
+  let isSavingSettingsPanel = false;
 
   const refreshSidebarView = () => {
     if (!sidebarView) {
@@ -118,15 +120,19 @@ export function activate(context: vscode.ExtensionContext): void {
         }
 
         const configuration = vscode.workspace.getConfiguration("generateGitMessage");
-        await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
-          await configuration.update(
-            key,
-            value,
-            target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
-          );
-        }, (key) => getSettingsPanelSaveTarget(configuration, key));
+        isSavingSettingsPanel = true;
+        try {
+          await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
+            await configuration.update(
+              key,
+              value,
+              target === "workspace" ? vscode.ConfigurationTarget.Workspace : vscode.ConfigurationTarget.Global
+            );
+          }, (key) => getSettingsPanelSaveTarget(configuration, key));
+        } finally {
+          isSavingSettingsPanel = false;
+        }
 
-        refreshSidebarView();
         void vscode.window.showInformationMessage("Generate Git Message settings saved.");
       });
 
@@ -140,7 +146,10 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   const configurationDisposable = vscode.workspace.onDidChangeConfiguration((event) => {
-    if (sidebarView && event.affectsConfiguration("generateGitMessage")) {
+    if (
+      sidebarView &&
+      shouldRefreshSidebarViewForConfigurationChange(event.affectsConfiguration("generateGitMessage"), isSavingSettingsPanel)
+    ) {
       refreshSidebarView();
     }
   });
