@@ -383,12 +383,12 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /Available CLIs: Codex and Claude\./);
   assert.match(html, /Output language/);
   assert.match(html, /<option value="zh" selected>Chinese \(Simplified\)<\/option>/);
-  assert.match(html, /<option value="en">English<\/option>/);
   assert.match(html, /<option value="zh-Hant">Chinese \(Traditional\)<\/option>/);
+  assert.match(html, /<option value="en">English<\/option>/);
   assert.match(html, /Commit Templates/);
-  assert.match(html, /简体中文 commit template/);
-  assert.doesNotMatch(html, /English commit template/);
-  assert.doesNotMatch(html, /繁體中文 commit template/);
+  assert.match(html, /data-commit-template-language="zh">[\s\S]*简体中文 commit template/);
+  assert.match(html, /data-commit-template-language="en" hidden>[\s\S]*English commit template/);
+  assert.match(html, /data-commit-template-language="zh-Hant" hidden>[\s\S]*繁體中文 commit template/);
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Codex Runtime/);
   assert.match(html, /gpt-5.4-mini/);
@@ -444,9 +444,9 @@ test("buildSettingsPanelHtml renders only Claude runtime when provider is claude
   assert.doesNotMatch(html, /Codex Runtime/);
   assert.doesNotMatch(html, /Codex path/);
   assert.doesNotMatch(html, /Reasoning effort/);
-  assert.match(html, /English commit template/);
-  assert.doesNotMatch(html, /简体中文 commit template/);
-  assert.doesNotMatch(html, /繁體中文 commit template/);
+  assert.match(html, /data-commit-template-language="en">[\s\S]*English commit template/);
+  assert.match(html, /data-commit-template-language="zh" hidden>[\s\S]*简体中文 commit template/);
+  assert.match(html, /data-commit-template-language="zh-Hant" hidden>[\s\S]*繁體中文 commit template/);
 });
 
 test("getSettingsPanelSaveTarget falls back to global when inspect reports no workspace value", () => {

@@ -378,8 +378,8 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
               <span>Output language</span>
               <select name="outputLanguage">
                 ${renderOutputLanguageOption("zh", state.common.outputLanguage)}
-                ${renderOutputLanguageOption("en", state.common.outputLanguage)}
                 ${renderOutputLanguageOption("zh-Hant", state.common.outputLanguage)}
+                ${renderOutputLanguageOption("en", state.common.outputLanguage)}
               </select>
             </label>
             <label>
@@ -399,7 +399,9 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
             <p>Edit the prompt for the currently selected output language.</p>
           </div>
           <div class="field-grid">
-            ${renderCommitTemplateField(state.common.outputLanguage, state.commitTemplates[state.common.outputLanguage])}
+            <div id="commit-template-container">
+              ${renderCommitTemplateGroup(state.common.outputLanguage, state.commitTemplates)}
+            </div>
             <p class="helper">Use <code>{{diff}}</code> as the Git diff placeholder. Keep only the constraints that improve commit message quality.</p>
           </div>
         </div>
@@ -430,24 +432,24 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     const vscode = acquireVsCodeApi();
     const state = ${jsonState};
     const form = document.getElementById('settings-form');
+    const commitTemplateContainer = document.getElementById('commit-template-container');
+    const outputLanguageSelect = form.querySelector('select[name="outputLanguage"]');
     const generateButton = document.getElementById('generate-message-button');
     let saveTimer;
 
     const collectState = () => {
       const values = new FormData(form);
-      const outputLanguage = String(values.get('outputLanguage') || state.common.outputLanguage);
-      const currentTemplateKey = getCommitTemplateKey(outputLanguage);
-      const currentTemplate = String(values.get(currentTemplateKey) || state.commitTemplates[outputLanguage] || '');
       return {
         provider: String(values.get('provider') || state.provider),
         commitTemplates: {
-          ...state.commitTemplates,
-          [outputLanguage]: currentTemplate
+          en: getTextareaValue('commitTemplateEn'),
+          zh: getTextareaValue('commitTemplateZh'),
+          "zh-Hant": getTextareaValue('commitTemplateZhHant')
         },
         common: {
           timeoutMs: Number(values.get('timeoutMs') || state.common.timeoutMs),
           debugLogging: values.get('debugLogging') === 'on',
-          outputLanguage
+          outputLanguage: String(values.get('outputLanguage') || state.common.outputLanguage)
         },
         codex: {
           codexPath: String(values.get('codexPath') || ''),
@@ -471,17 +473,53 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
       saveTimer = window.setTimeout(saveSettings, 450);
     };
 
+    const getTextareaValue = (name) => {
+      const textarea = form.querySelector('textarea[name="' + name + '"]');
+      return textarea instanceof HTMLTextAreaElement ? textarea.value : '';
+    };
+
     form.addEventListener('input', () => {
       scheduleSave();
     });
 
-    form.addEventListener('change', () => {
+    form.addEventListener('change', (event) => {
+      const target = getEventTarget(event);
+
+      if (target instanceof HTMLSelectElement && target.name === 'outputLanguage') {
+        updateTemplateVisibility(target.value);
+      }
+
       saveSettings();
     });
 
     generateButton.addEventListener('click', () => {
       vscode.postMessage({ type: 'generateMessage' });
     });
+
+    updateTemplateVisibility(String(outputLanguageSelect?.value || state.common.outputLanguage));
+
+    function getEventTarget(event) {
+      return event && event.target ? event.target : undefined;
+    }
+
+    function updateTemplateVisibility(outputLanguage) {
+      const currentLanguage = outputLanguage === 'en' || outputLanguage === 'zh' || outputLanguage === 'zh-Hant'
+        ? outputLanguage
+        : state.common.outputLanguage;
+
+      if (!commitTemplateContainer) {
+        return;
+      }
+
+      const fields = commitTemplateContainer.querySelectorAll('[data-commit-template-language]');
+      fields.forEach((field) => {
+        if (!(field instanceof HTMLElement)) {
+          return;
+        }
+
+        field.hidden = field.dataset.commitTemplateLanguage !== currentLanguage;
+      });
+    }
   </script>
 </body>
 </html>`;
@@ -529,10 +567,29 @@ function renderCommitTemplateField(language: OutputLanguage, value: string): str
   };
 
   return /* html */ `
-            <label>
-              <span>${labels[language]}</span>
-              <textarea name="${getCommitTemplateKey(language)}">${escapeHtml(value)}</textarea>
-            </label>`;
+    <label>
+      <span>${labels[language]}</span>
+      <textarea name="${getCommitTemplateKey(language)}">${escapeHtml(value)}</textarea>
+    </label>`;
+}
+
+function renderCommitTemplateGroup(selectedLanguage: OutputLanguage, commitTemplates: Record<OutputLanguage, string>): string {
+  return [
+    renderCommitTemplateFieldWithVisibility("en", selectedLanguage, commitTemplates.en),
+    renderCommitTemplateFieldWithVisibility("zh", selectedLanguage, commitTemplates.zh),
+    renderCommitTemplateFieldWithVisibility("zh-Hant", selectedLanguage, commitTemplates["zh-Hant"])
+  ].join("");
+}
+
+function renderCommitTemplateFieldWithVisibility(
+  language: OutputLanguage,
+  selectedLanguage: OutputLanguage,
+  value: string
+): string {
+  return /* html */ `
+            <div data-commit-template-language="${language}"${language === selectedLanguage ? "" : " hidden"}>
+              ${renderCommitTemplateField(language, value)}
+            </div>`;
 }
 
 function renderActiveRuntimeSection(state: SettingsPanelState): string {

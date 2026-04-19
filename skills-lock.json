@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "vscode-extension-expert": {
+      "source": "s-hiraoku/vscode-sidebar-terminal",
+      "sourceType": "github",
+      "computedHash": "75c47e6af1766e54520759124efb1a66cfae9f739a2a8039b4c253b1bdfe0391"
+    }
+  }
+}
