@@ -3,6 +3,7 @@ name: Package VSIX
 on:
   push:
     branches:
+      - master
       - main
 
 jobs:
