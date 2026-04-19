@@ -144,12 +144,12 @@
         },
         "generateGitMessage.commitTemplateZh": {
           "type": "string",
-          "default": "根据以下 git diff 生成标准化的 git commit message。\n请遵循 Conventional Commits 规范。\n\n工作流程：\n1. 分析 diff，识别主要逻辑变更。\n2. 选择最准确的 type：feat、fix、docs、style、refactor、perf、test、build、ci、chore 或 revert。\n3. 根据受影响的模块、包或文件范围推断可选 scope；如果没有明确且稳定的 scope，则省略。\n4. 使用现在时、祈使语气撰写 72 字符以内的描述。\n5. 仅在能够切实说明原因、影响或风险时，才添加简短 body。\n6. 如果 diff 包含 API 移除、不兼容变更、迁移要求或其他 breaking change，请在 header 中标记 !，或添加 BREAKING CHANGE footer。\n\n输出规则：\n- 只返回最终 commit message。\n- 不要解释分析过程。\n- 如果 diff 混合了多个无关改动，只总结最主要的改动，不要编造细节。\n- 不要提及 diff 中不存在的文件。\n\n格式：\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer]\n\nGit diff:\n{{diff}}",
+          "default": "根据以下 git diff 生成标准化的 git commit message。\n请遵循 Conventional Commits 规范。\n\n工作流程：\n1. 分析 diff，识别主要逻辑变更。\n2. 选择最准确的 type：feat、fix、docs、style、refactor、perf、test、build、ci、chore 或 revert。\n3. 根据受影响的模块、包或文件范围推断可选 scope；如果没有明确且稳定的 scope，则省略。\n4. 使用现在时、祈使语气撰写 72 字符以内的描述。\n5. 仅在能切实说明原因、影响或风险时，才添加简短 body。\n6. 如果 diff 包含 API 移除、不兼容变更、迁移要求或其他 breaking change，请在 header 中标记 !，或添加 BREAKING CHANGE footer。\n\n输出规则：\n- 只返回最终 commit message。\n- 不要解释分析过程。\n- 如果 diff 混合了多个无关改动，只总结最主要的改动，不要编造细节。\n- 不要提及 diff 中不存在的文件。\n\n格式：\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer]\n\nGit diff:\n{{diff}}",
           "description": "Simplified Chinese commit template. Use {{diff}} as the Git diff placeholder."
         },
         "generateGitMessage.commitTemplateZhHant": {
           "type": "string",
-          "default": "根據以下 git diff 生成標準化的 git commit message。\n請遵循 Conventional Commits 規範。\n\n工作流程：\n1. 分析 diff，識別主要邏輯變更。\n2. 選擇最準確的 type：feat、fix、docs、style、refactor、perf、test、build、ci、chore 或 revert。\n3. 根據受影響的模組、套件或檔案範圍推斷可選 scope；如果沒有明確且穩定的 scope，則省略。\n4. 使用現在式、祈使語氣撰寫 72 字元以內的描述。\n5. 僅在能夠切實說明原因、影響或風險時，才加入簡短 body。\n6. 如果 diff 包含 API 移除、不相容變更、遷移需求或其他 breaking change，請在 header 中標記 !，或加入 BREAKING CHANGE footer。\n\n輸出規則：\n- 只回傳最終 commit message。\n- 不要解釋分析過程。\n- 如果 diff 混合了多個無關改動，只總結最主要的改動，不要編造細節。\n- 不要提及 diff 中不存在的檔案。\n\n格式：\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer]\n\nGit diff:\n{{diff}}",
+          "default": "根據以下 git diff 生成標準化的 git commit message。\n請遵循 Conventional Commits 規範。\n\n工作流程：\n1. 分析 diff，識別主要邏輯變更。\n2. 選擇最準確的 type：feat、fix、docs、style、refactor、perf、test、build、ci、chore 或 revert。\n3. 根據受影響的模組、套件或檔案範圍推斷可選 scope；如果沒有明確且穩定的 scope，則省略。\n4. 使用現在式、祈使語氣撰寫 72 字元以內的描述。\n5. 僅在能切實說明原因、影響或風險時，才加入簡短 body。\n6. 如果 diff 包含 API 移除、不相容變更、遷移需求或其他 breaking change，請在 header 中標記 !，或加入 BREAKING CHANGE footer。\n\n輸出規則：\n- 只回傳最終 commit message。\n- 不要解釋分析過程。\n- 如果 diff 混合了多個無關改動，只總結最主要的改動，不要編造細節。\n- 不要提及 diff 中不存在的檔案。\n\n格式：\n<type>[optional scope]: <description>\n\n[optional body]\n\n[optional footer]\n\nGit diff:\n{{diff}}",
           "description": "Traditional Chinese commit template. Use {{diff}} as the Git diff placeholder."
         },
         "generateGitMessage.timeoutMs": {
@@ -164,7 +164,7 @@
   "scripts": {
     "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p .",
     "test": "npm run build && node --test dist/test/*.test.js",
-    "package:vsix": "vsce package",
+    "package:vsix": "npm run build && vsce package",
     "publish:vsce": "vsce publish",
     "publish:openvsx": "npx ovsx publish"
   },

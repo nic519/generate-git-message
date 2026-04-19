@@ -373,6 +373,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
                 <option value="claude"${state.provider === "claude" ? " selected" : ""}>claude</option>
               </select>
             </label>
+            <p class="helper">Available CLIs: Codex and Claude. Switch here to configure the one you want to use.</p>
             <label>
               <span>Output language</span>
               <select name="outputLanguage">
@@ -395,12 +396,10 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         <div class="section">
           <div class="section-header">
             <h2>Commit Templates</h2>
-            <p>Edit the prompt for each output language so every commit message request matches the selected language.</p>
+            <p>Edit the prompt for the currently selected output language.</p>
           </div>
           <div class="field-grid">
-            ${renderCommitTemplateField("commitTemplateEn", "English commit template", state.commitTemplates.en)}
-            ${renderCommitTemplateField("commitTemplateZh", "简体中文 commit template", state.commitTemplates.zh)}
-            ${renderCommitTemplateField("commitTemplateZhHant", "繁體中文 commit template", state.commitTemplates["zh-Hant"])}
+            ${renderCommitTemplateField(state.common.outputLanguage, state.commitTemplates[state.common.outputLanguage])}
             <p class="helper">Use <code>{{diff}}</code> as the Git diff placeholder. Keep only the constraints that improve commit message quality.</p>
           </div>
         </div>
@@ -436,17 +435,19 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
 
     const collectState = () => {
       const values = new FormData(form);
+      const outputLanguage = String(values.get('outputLanguage') || state.common.outputLanguage);
+      const currentTemplateKey = getCommitTemplateKey(outputLanguage);
+      const currentTemplate = String(values.get(currentTemplateKey) || state.commitTemplates[outputLanguage] || '');
       return {
         provider: String(values.get('provider') || state.provider),
         commitTemplates: {
-          en: String(values.get('commitTemplateEn') || ''),
-          zh: String(values.get('commitTemplateZh') || ''),
-          "zh-Hant": String(values.get('commitTemplateZhHant') || '')
+          ...state.commitTemplates,
+          [outputLanguage]: currentTemplate
         },
         common: {
           timeoutMs: Number(values.get('timeoutMs') || state.common.timeoutMs),
           debugLogging: values.get('debugLogging') === 'on',
-          outputLanguage: String(values.get('outputLanguage') || 'zh')
+          outputLanguage
         },
         codex: {
           codexPath: String(values.get('codexPath') || ''),
@@ -508,11 +509,29 @@ function renderOutputLanguageOption(value: OutputLanguage, selectedValue: Output
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${labels[value]}</option>`;
 }
 
-function renderCommitTemplateField(name: string, label: string, value: string): string {
+function getCommitTemplateKey(language: OutputLanguage): string {
+  if (language === "en") {
+    return "commitTemplateEn";
+  }
+
+  if (language === "zh") {
+    return "commitTemplateZh";
+  }
+
+  return "commitTemplateZhHant";
+}
+
+function renderCommitTemplateField(language: OutputLanguage, value: string): string {
+  const labels: Record<OutputLanguage, string> = {
+    en: "English commit template",
+    zh: "简体中文 commit template",
+    "zh-Hant": "繁體中文 commit template"
+  };
+
   return /* html */ `
             <label>
-              <span>${label}</span>
-              <textarea name="${name}">${escapeHtml(value)}</textarea>
+              <span>${labels[language]}</span>
+              <textarea name="${getCommitTemplateKey(language)}">${escapeHtml(value)}</textarea>
             </label>`;
 }
 
