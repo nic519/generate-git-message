@@ -1,6 +1,6 @@
 {
-  "name": "generate-git-message",
-  "displayName": "Generate Git Message",
+  "name": "git-message-ai-codex-claude",
+  "displayName": "Git Message with Codex & Claude",
   "description": "Generate git commit messages from staged changes first, or fall back to working tree changes, and backfill VS Code's SCM input with local Codex or Claude CLI without auto-committing.",
   "version": "0.0.4",
   "publisher": "thinkernicholas",
@@ -21,7 +21,7 @@
     "vscode": "^1.99.0"
   },
   "categories": [
-    "Source Control"
+    "SCM Providers"
   ],
   "activationEvents": [
     "onCommand:generateGitMessage.generateMessage",
