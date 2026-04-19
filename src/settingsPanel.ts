@@ -37,6 +37,11 @@ export interface SettingsPanelUpdate {
   value: unknown;
 }
 
+export interface SettingsPanelUpdateMessage {
+  type: "saveSetting";
+  update: SettingsPanelUpdate;
+}
+
 export interface WebviewLike {
   cspSource: string;
 }
@@ -101,6 +106,37 @@ export function mapSettingsPanelSaveMessageToUpdates(message: SettingsPanelSaveM
   ];
 }
 
+export function normalizeSettingsPanelUpdate(update: SettingsPanelUpdate): SettingsPanelUpdate | undefined {
+  switch (update.key) {
+    case "provider":
+      return isProvider(update.value) ? update : undefined;
+    case "commitTemplateEn":
+    case "commitTemplateZh":
+    case "commitTemplateZhHant":
+    case "model":
+    case "claudeModel":
+      return isString(update.value) ? update : undefined;
+    case "codexPath":
+      return isString(update.value)
+        ? { key: update.key, value: resolveExecutablePath(update.value, DEFAULT_CODEX_PATH) }
+        : undefined;
+    case "claudePath":
+      return isString(update.value)
+        ? { key: update.key, value: resolveExecutablePath(update.value, DEFAULT_CLAUDE_PATH) }
+        : undefined;
+    case "outputLanguage":
+      return isOutputLanguage(update.value) ? update : undefined;
+    case "timeoutMs":
+      return isFiniteNumberAtLeast(update.value, 1000) ? update : undefined;
+    case "debugLogging":
+      return isBoolean(update.value) ? update : undefined;
+    case "reasoningEffort":
+      return isReasoningEffort(update.value) ? update : undefined;
+    default:
+      return undefined;
+  }
+}
+
 export async function applySettingsPanelSaveMessage(
   message: SettingsPanelSaveMessage,
   updateSetting: (key: string, value: unknown, target: SettingsPanelSaveTarget) => void | Promise<void>,
@@ -109,6 +145,14 @@ export async function applySettingsPanelSaveMessage(
   for (const update of mapSettingsPanelSaveMessageToUpdates(message)) {
     await updateSetting(update.key, update.value, getTarget(update.key));
   }
+}
+
+export async function applySettingsPanelUpdateMessage(
+  message: SettingsPanelUpdateMessage,
+  updateSetting: (key: string, value: unknown, target: SettingsPanelSaveTarget) => void | Promise<void>,
+  getTarget: (key: string) => SettingsPanelSaveTarget = () => "global"
+): Promise<void> {
+  await updateSetting(message.update.key, message.update.value, getTarget(message.update.key));
 }
 
 export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPanelState): string {
@@ -459,65 +503,104 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
     const saveStatus = document.getElementById('save-status');
     let saveTimer;
 
-    const collectState = () => {
-      const values = new FormData(form);
-      return {
-        provider: String(values.get('provider') || state.provider),
-        commitTemplates: {
-          en: getTextareaValue('commitTemplateEn'),
-          zh: getTextareaValue('commitTemplateZh'),
-          "zh-Hant": getTextareaValue('commitTemplateZhHant')
-        },
-        common: {
-          timeoutMs: Number(values.get('timeoutMs') || state.common.timeoutMs),
-          debugLogging: values.get('debugLogging') === 'on',
-          outputLanguage: String(values.get('outputLanguage') || state.common.outputLanguage)
-        },
-        codex: {
-          codexPath: getStringValue(values, 'codexPath', state.codex.codexPath, 'codex'),
-          model: getStringValue(values, 'model', state.codex.model),
-          reasoningEffort: getStringValue(values, 'reasoningEffort', state.codex.reasoningEffort)
-        },
-        claude: {
-          claudePath: getStringValue(values, 'claudePath', state.claude.claudePath, 'claude'),
-          claudeModel: getStringValue(values, 'claudeModel', state.claude.claudeModel)
-        }
-      };
-    };
+    let pendingUpdate;
 
-    const saveSettings = () => {
+    const saveSetting = (update) => {
       window.clearTimeout(saveTimer);
+      pendingUpdate = undefined;
       updateSaveStatus('saving', '正在保存...');
-      vscode.postMessage({ type: 'saveSettings', state: collectState() });
+      vscode.postMessage({ type: 'saveSetting', update });
     };
 
-    const scheduleSave = () => {
+    const scheduleSave = (update) => {
+      pendingUpdate = update;
       window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(saveSettings, 450);
+      saveTimer = window.setTimeout(() => {
+        if (pendingUpdate) {
+          saveSetting(pendingUpdate);
+        }
+      }, 450);
     };
 
-    const getTextareaValue = (name) => {
-      const textarea = form.querySelector('textarea[name="' + name + '"]');
-      return textarea instanceof HTMLTextAreaElement ? textarea.value : '';
-    };
-
-    const getStringValue = (values, name, fallback, defaultWhenBlank) => {
-      if (!values.has(name)) {
-        // 隐藏的 provider 区域仍代表已保存设置；字段不存在时保留旧值，
-        // 不能当成用户清空了输入。
-        return String(fallback || '');
+    const getStringValue = (value, defaultWhenBlank) => {
+      const stringValue = String(value || '');
+      if (stringValue.trim()) {
+        return stringValue;
       }
 
-      const value = String(values.get(name) || '');
-      if (value.trim()) {
-        return value;
-      }
-
-      return defaultWhenBlank === undefined ? value : String(defaultWhenBlank);
+      return defaultWhenBlank === undefined ? stringValue : String(defaultWhenBlank);
     };
 
-    form.addEventListener('input', () => {
-      scheduleSave();
+    const getUpdateForTarget = (target) => {
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) {
+        return undefined;
+      }
+
+      const name = target.name;
+      const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+        ? target.checked
+        : target.value;
+
+      if (name === 'commitTemplateEn' || name === 'commitTemplateZh' || name === 'commitTemplateZhHant') {
+        return { key: name, value };
+      }
+
+      if (name === 'timeoutMs') {
+        return { key: name, value: Number(value) };
+      }
+
+      if (name === 'debugLogging') {
+        return { key: name, value };
+      }
+
+      if (name === 'codexPath') {
+        return { key: name, value: getStringValue(value, 'codex') };
+      }
+
+      if (name === 'claudePath') {
+        return { key: name, value: getStringValue(value, 'claude') };
+      }
+
+      if (
+        name === 'provider' ||
+        name === 'outputLanguage' ||
+        name === 'model' ||
+        name === 'reasoningEffort' ||
+        name === 'claudeModel'
+      ) {
+        return { key: name, value };
+      }
+
+      return undefined;
+    };
+
+    const syncDefaultedInputValue = (target, update) => {
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+
+      if ((update.key === 'codexPath' || update.key === 'claudePath') && typeof update.value === 'string') {
+        target.value = update.value;
+      }
+    };
+
+    const saveTarget = (target, immediate) => {
+      const update = getUpdateForTarget(target);
+      if (!update) {
+        return;
+      }
+
+      syncDefaultedInputValue(target, update);
+      if (immediate) {
+        saveSetting(update);
+        return;
+      }
+
+      scheduleSave(update);
+    };
+
+    form.addEventListener('input', (event) => {
+      saveTarget(getEventTarget(event), false);
     });
 
     form.addEventListener('change', (event) => {
@@ -531,7 +614,7 @@ export function buildSettingsPanelHtml(webview: WebviewLike, state: SettingsPane
         updateRuntimeVisibility(target.value);
       }
 
-      saveSettings();
+      saveTarget(target, true);
     });
 
     generateButton.addEventListener('click', () => {
@@ -615,6 +698,25 @@ export function isSettingsPanelSaveMessage(message: unknown): message is { type:
   return isSettingsPanelState(message.state);
 }
 
+export function isSettingsPanelUpdateMessage(message: unknown): message is SettingsPanelUpdateMessage {
+  // 字段级保存是 webview 的主协议：一次只保存一个 setting，避免整表保存互相拖累。
+  if (!isRecord(message) || message.type !== "saveSetting" || !isRecord(message.update)) {
+    return false;
+  }
+
+  const normalizedUpdate = normalizeSettingsPanelUpdate({
+    key: String(message.update.key),
+    value: message.update.value
+  });
+  if (!normalizedUpdate) {
+    return false;
+  }
+
+  message.update.key = normalizedUpdate.key;
+  message.update.value = normalizedUpdate.value;
+  return true;
+}
+
 function renderReasoningEffortOption(value: ReasoningEffort, selectedValue: ReasoningEffort): string {
   return `<option value="${value}"${value === selectedValue ? " selected" : ""}>${value}</option>`;
 }
@@ -692,6 +794,7 @@ function renderActiveRuntimeSection(state: SettingsPanelState): string {
               <span>Model</span>
               <input name="model" type="text" value="${escapeHtml(state.codex.model)}" />
             </label>
+            <p class="helper">Examples: gpt-5.4, gpt-5.4-mini.</p>
             <label>
               <span>Reasoning effort</span>
               <select name="reasoningEffort">
@@ -718,6 +821,7 @@ function renderActiveRuntimeSection(state: SettingsPanelState): string {
               <span>Claude model</span>
               <input name="claudeModel" type="text" value="${escapeHtml(state.claude.claudeModel)}" />
             </label>
+            <p class="helper">Examples: haiku, sonnet, opus.</p>
           </div>
         </div>`;
 }

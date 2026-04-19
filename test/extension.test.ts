@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 
 import { resolveExtensionOptions } from "../src/config";
 import { getProviderDebugLines, getRequestDebugLines } from "../src/debugLog";
-import { shouldRefreshSidebarViewForConfigurationChange } from "../src/sidebarRefresh";
 
 function makeConfiguration(values: Record<string, unknown>) {
   return {
@@ -81,17 +80,13 @@ test("getRequestDebugLines includes repository execution context", () => {
   );
 });
 
-test("sidebar skips configuration refresh while saving settings from the panel", () => {
-  assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, true), false);
-  assert.equal(shouldRefreshSidebarViewForConfigurationChange(true, false), true);
-  assert.equal(shouldRefreshSidebarViewForConfigurationChange(false, false), false);
-});
-
-test("extension acknowledges panel auto-save without refreshing or showing a toast", () => {
+test("extension acknowledges panel auto-save and refreshes only when the view becomes visible", () => {
   const extensionSource = readFileSync("src/extension.ts", "utf8");
 
   assert.doesNotMatch(extensionSource, /settings saved and refreshed/i);
   assert.doesNotMatch(extensionSource, /saveSucceeded[\s\S]*refreshSidebarView\(\)/);
   assert.doesNotMatch(extensionSource, /showInformationMessage\("Generate Git Message settings/);
+  assert.doesNotMatch(extensionSource, /onDidChangeConfiguration/);
   assert.match(extensionSource, /postMessage\(\{\s*type: "settingsSaved"/);
+  assert.match(extensionSource, /onDidChangeVisibility/);
 });

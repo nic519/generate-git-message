@@ -7,24 +7,24 @@ import { getGitApi, pickRepository } from "./git";
 import { getRepositoryDiff } from "./repositoryDiff";
 import { generateMessage, getProviderDisplayName } from "./providers";
 import { MessageGenerationCanceledError } from "./messageGenerator";
-import { shouldRefreshSidebarViewForConfigurationChange } from "./sidebarRefresh";
 import {
   applySettingsPanelSaveMessage,
   buildSettingsPanelHtml,
   getSettingsPanelState,
   getSettingsPanelSaveTarget,
-  isSettingsPanelSaveMessage
+  isSettingsPanelSaveMessage,
+  isSettingsPanelUpdateMessage,
+  applySettingsPanelUpdateMessage
 } from "./settingsPanel";
 import { applyCommitMessage } from "./writeMessage";
 
 export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel("Generate Git Message");
   let sidebarView: vscode.WebviewView | undefined;
-  let isSavingSettingsPanel = false;
 
   const refreshSidebarView = () => {
-    // 只在初次渲染或外部配置变更时调用。面板自动保存后调用会替换 DOM，
-    // 让正在编辑的输入框丢失焦点。
+    // 只在初次渲染或侧边栏重新可见时读取配置。不要监听配置变更刷新，
+    // 否则面板自己保存产生的事件可能把正在编辑的 UI 刷回旧状态。
     if (!sidebarView) {
       return;
     }
@@ -117,14 +117,9 @@ export function activate(context: vscode.ExtensionContext): void {
           return;
         }
 
-        if (!isSettingsPanelSaveMessage(message)) {
-          return;
-        }
-
         const configuration = vscode.workspace.getConfiguration("generateGitMessage");
-        isSavingSettingsPanel = true;
         try {
-          await applySettingsPanelSaveMessage(message.state, async (key, value, target) => {
+          const updateSetting = async (key: string, value: unknown, target: "global" | "workspace" | "workspaceFolder") => {
             const configurationTarget =
               target === "workspaceFolder"
                 ? vscode.ConfigurationTarget.WorkspaceFolder
@@ -137,15 +132,23 @@ export function activate(context: vscode.ExtensionContext): void {
               value,
               configurationTarget
             );
-          }, (key) => getSettingsPanelSaveTarget(configuration, key));
+          };
+          const getTarget = (key: string) => getSettingsPanelSaveTarget(configuration, key);
+
+          if (isSettingsPanelUpdateMessage(message)) {
+            await applySettingsPanelUpdateMessage(message, updateSetting, getTarget);
+          } else if (isSettingsPanelSaveMessage(message)) {
+            await applySettingsPanelSaveMessage(message.state, updateSetting, getTarget);
+          } else {
+            return;
+          }
+
           void sidebarView?.webview.postMessage({ type: "settingsSaved" });
         } catch (error) {
           void sidebarView?.webview.postMessage({
             type: "settingsSaveFailed",
             message: error instanceof Error ? error.message : "Settings save failed."
           });
-        } finally {
-          isSavingSettingsPanel = false;
         }
         // 面板自动保存后不要刷新或弹通知。重设 webview.html 会重建 DOM，
         // 抢走用户正在编辑的输入焦点。
@@ -156,23 +159,19 @@ export function activate(context: vscode.ExtensionContext): void {
         sidebarView = undefined;
       });
 
-      context.subscriptions.push(messageDisposable, disposeDisposable);
-    }
-  });
+      const visibilityDisposable = sidebarView.onDidChangeVisibility(() => {
+        if (sidebarView?.visible) {
+          refreshSidebarView();
+        }
+      });
 
-  const configurationDisposable = vscode.workspace.onDidChangeConfiguration((event) => {
-    if (
-      sidebarView &&
-      shouldRefreshSidebarViewForConfigurationChange(event.affectsConfiguration("generateGitMessage"), isSavingSettingsPanel)
-    ) {
-      refreshSidebarView();
+      context.subscriptions.push(messageDisposable, disposeDisposable, visibilityDisposable);
     }
   });
 
   context.subscriptions.push(
     disposable,
     sidebarProviderDisposable,
-    configurationDisposable,
     outputChannel
   );
 }

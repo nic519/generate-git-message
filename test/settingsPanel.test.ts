@@ -6,6 +6,7 @@ import {
   buildSettingsPanelHtml,
   getSettingsPanelState,
   getSettingsPanelSaveTarget,
+  isSettingsPanelUpdateMessage,
   isSettingsPanelSaveMessage,
   mapSettingsPanelSaveMessageToUpdates
 } from "../src/settingsPanel";
@@ -141,6 +142,61 @@ test("mapSettingsPanelSaveMessageToUpdates normalizes blank CLI paths to default
 
   assert.equal(updates.find((update) => update.key === "codexPath")?.value, "codex");
   assert.equal(updates.find((update) => update.key === "claudePath")?.value, "claude");
+});
+
+test("isSettingsPanelUpdateMessage accepts model updates and normalizes blank CLI paths", () => {
+  const modelMessage = {
+    type: "saveSetting",
+    update: {
+      key: "model",
+      value: "gpt-5.4"
+    }
+  };
+  const blankCodexPathMessage = {
+    type: "saveSetting",
+    update: {
+      key: "codexPath",
+      value: "   "
+    }
+  };
+
+  assert.equal(isSettingsPanelUpdateMessage(modelMessage), true);
+  assert.equal(modelMessage.update.value, "gpt-5.4");
+  assert.equal(isSettingsPanelUpdateMessage(blankCodexPathMessage), true);
+  assert.equal(blankCodexPathMessage.update.value, "codex");
+});
+
+test("isSettingsPanelUpdateMessage rejects invalid keys and invalid values", () => {
+  assert.equal(
+    isSettingsPanelUpdateMessage({
+      type: "saveSetting",
+      update: {
+        key: "model",
+        value: 123
+      }
+    }),
+    false
+  );
+  assert.equal(
+    isSettingsPanelUpdateMessage({
+      type: "saveSetting",
+      update: {
+        key: "timeoutMs",
+        value: 999
+      }
+    }),
+    false
+  );
+  assert.equal(
+    isSettingsPanelUpdateMessage({
+      type: "saveSetting",
+      update: {
+        key: "unknown",
+        value: "value"
+      }
+    }),
+    false
+  );
 });
 
 test("isSettingsPanelSaveMessage rejects invalid provider reasoningEffort timeout and string fields", () => {
@@ -420,9 +476,11 @@ test("buildSettingsPanelHtml renders the compact sidebar layout", () => {
   assert.match(html, /min-height: 220px/);
   assert.match(html, /Codex Runtime/);
   assert.match(html, /gpt-5.4-mini/);
+  assert.match(html, /Examples: gpt-5\.4, gpt-5\.4-mini\./);
   assert.match(html, /data-provider-runtime="codex">[\s\S]*Codex Runtime/);
   assert.match(html, /data-provider-runtime="claude" hidden>[\s\S]*Claude Runtime/);
   assert.match(html, /Claude model/);
+  assert.match(html, /Examples: haiku, sonnet, opus\./);
   assert.match(html, /Changes save automatically/);
   assert.match(html, /id="save-status"/);
   assert.match(html, /window\.addEventListener\('message'/);
@@ -474,6 +532,7 @@ test("buildSettingsPanelHtml renders only Claude runtime when provider is claude
   assert.match(html, /Claude Runtime/);
   assert.match(html, /Claude model/);
   assert.match(html, /claude-haiku-4-5-20251001/);
+  assert.match(html, /Examples: haiku, sonnet, opus\./);
   assert.match(html, /Available CLIs: Codex and Claude\./);
   assert.match(html, /data-provider-runtime="claude">[\s\S]*Claude Runtime/);
   assert.match(html, /data-provider-runtime="codex" hidden>[\s\S]*Codex Runtime/);
